@@ -85,7 +85,7 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	# Write additional files
 	var additional: Dictionary = input.get("additional_files", {})
 	for rel_path in additional:
-		var full_path := base_path + rel_path
+		var full_path: String = base_path + rel_path
 		# Security: ensure no path traversal
 		if ".." in rel_path or rel_path.begins_with("/"):
 			continue
@@ -159,8 +159,8 @@ func _enable_plugin(dir_name: String, script_path: String) -> void:
 		ProjectSettings.save()
 
 	# Attempt immediate load
-	var script := load(script_path)
+	var script: Resource = load(script_path)
 	if script:
-		var instance := script.new()
+		var instance: RefCounted = script.new()
 		if instance:
 			instance._enter_tree()

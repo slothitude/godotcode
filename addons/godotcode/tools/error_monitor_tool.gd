@@ -49,7 +49,7 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 		return {"success": true, "data": "## Editor Output (last %d lines)\n%s" % [log_lines.size(), "\n".join(log_lines)]}
 
 
-func _read_log_file() -> Array:
+func _read_log_file() -> Variant:
 	# Godot stores logs in user://logs/
 	var log_dir := "user://logs"
 	var da := DirAccess.open(log_dir)
@@ -90,7 +90,7 @@ func _extract_errors(lines: Array) -> Dictionary:
 	var warning_patterns := ["WARNING:"]
 
 	for line in lines:
-		var stripped := line.strip_edges()
+		var stripped: String = str(line).strip_edges()
 		if stripped == "":
 			continue
 

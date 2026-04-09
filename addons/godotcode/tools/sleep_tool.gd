@@ -35,7 +35,7 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	var seconds: float = float(input.get("seconds", 1.0))
 	seconds = clampf(seconds, 0.1, 30.0)
 
-	var timer := Engine.get_main_loop().create_timer(seconds)
+	var timer: SceneTreeTimer = Engine.get_main_loop().create_timer(seconds)
 	await timer.timeout
 
 	return {"success": true, "data": "Waited %.1f seconds" % seconds}
