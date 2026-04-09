@@ -14,6 +14,7 @@ const TEMPERATURE := "temperature"
 const PERMISSION_MODE := "permission_mode"
 const THEME := "theme"
 const CONVERSATION_DIR := "conversation_dir"
+const WEB_EYES_URL := "web_eyes_url"
 
 # Provider options
 const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
@@ -30,6 +31,7 @@ const DEFAULT_MAX_TOKENS := 8192
 const DEFAULT_TEMPERATURE := 0.0
 const DEFAULT_PERMISSION_MODE := "default"
 const DEFAULT_THEME := "dark"
+const DEFAULT_WEB_EYES_URL := "http://localhost:3000"
 
 var _editor_settings: EditorSettings
 
@@ -62,6 +64,8 @@ func _ensure_defaults() -> void:
 		set_setting(THEME, DEFAULT_THEME)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + CONVERSATION_DIR):
 		set_setting(CONVERSATION_DIR, "")
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + WEB_EYES_URL):
+		set_setting(WEB_EYES_URL, DEFAULT_WEB_EYES_URL)
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:
@@ -119,3 +123,10 @@ func get_conversation_dir() -> String:
 	if dir == "":
 		dir = ProjectSettings.globalize_path("user://godotcode_conversations")
 	return dir
+
+
+func get_web_eyes_url() -> String:
+	var url := str(get_setting(WEB_EYES_URL, DEFAULT_WEB_EYES_URL))
+	if url.right(1) == "/":
+		url = url.left(url.length() - 1)
+	return url
