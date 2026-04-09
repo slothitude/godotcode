@@ -1,10 +1,10 @@
 # GodotCode
 
-AI assistant editor plugin for Godot 4.6. Chat with Claude directly inside the Godot editor — read/write project files, search code, run commands, and more.
+AI assistant editor plugin for Godot 4.6. Chat with an AI assistant directly inside the Godot editor — read/write project files, search code, run commands, and more.
 
 ## Features
 
-- **Streaming chat** — Real-time SSE streaming from the Anthropic Messages API
+- **Streaming chat** — Real-time SSE streaming with support for multiple LLM providers
 - **File tools** — Read, write, and edit project files via tool calls
 - **Code search** — Glob pattern matching and regex content search (Grep)
 - **Shell execution** — Run bash commands with permission prompts
@@ -28,13 +28,13 @@ AI assistant editor plugin for Godot 4.6. Chat with Claude directly inside the G
 ## Configure
 
 1. Click the **⚙** button in the dock header
-2. Enter your Anthropic API key (`sk-ant-...`)
-3. Select a model (default: `claude-sonnet-4-20250514`)
+2. Enter your API key
+3. Select a model (e.g. `claude-sonnet-4-20250514`, `gpt-4o`, `gemini-2.0-flash`)
 4. Adjust permission mode if needed
 
 ## Usage
 
-Type a message in the input field and press **Enter** to send. Claude will respond with streaming text and can use tools to interact with your project.
+Type a message in the input field and press **Enter** to send. The assistant will respond with streaming text and can use tools to interact with your project.
 
 ### Slash Commands
 
@@ -61,7 +61,7 @@ addons/godotcode/
 ├── plugin.cfg                 # Plugin metadata
 ├── plugin.gd                  # EditorPlugin entry point
 ├── core/
-│   ├── api_client.gd          # Anthropic Messages API (HTTP + SSE streaming)
+│   ├── api_client.gd          # LLM provider API (HTTP + SSE streaming)
 │   ├── query_engine.gd        # Core loop: stream → tool calls → execute → repeat
 │   ├── message_types.gd       # Message data classes with API serialization
 │   ├── tool_registry.gd       # Tool registration and lookup
@@ -107,7 +107,7 @@ addons/godotcode/
 ## Requirements
 
 - Godot 4.6+
-- Anthropic API key
+- API key from a supported LLM provider
 - (Optional) GDUnit4 for running tests
 
 ## License
