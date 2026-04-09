@@ -109,7 +109,8 @@ func _on_stream_delta(text: String) -> void:
 	_streaming_label.text += text
 	# Auto-scroll
 	await get_tree().process_frame
-	_message_container.ensure_control_visible(_streaming_label)
+	if _streaming_label and _streaming_label.is_inside_tree():
+		_message_container.ensure_control_visible(_streaming_label)
 
 
 func _on_tool_call(tool_name: String, tool_input: Dictionary) -> void:
