@@ -33,6 +33,7 @@ func _ready() -> void:
 		_query_engine.query_complete.connect(_on_query_complete)
 		_query_engine.query_error.connect(_on_query_error)
 		_query_engine.permission_requested.connect(_on_permission_requested)
+		_query_engine.status_update.connect(_on_status_update)
 
 	_load_conversation()
 
@@ -64,7 +65,6 @@ func _on_send() -> void:
 	# Submit to query engine
 	_is_streaming = true
 	_send_btn.disabled = true
-	_status_label.text = "Thinking..."
 	_query_engine.submit_message(text)
 
 
@@ -126,6 +126,10 @@ func _on_query_complete(result: Dictionary) -> void:
 	var cost := _cost_tracker.get_session_cost()
 	_cost_label.text = "$%.2f" % cost
 	_save_conversation()
+
+
+func _on_status_update(message: String) -> void:
+	_status_label.text = message
 
 
 func _on_query_error(error: Dictionary) -> void:

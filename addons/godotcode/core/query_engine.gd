@@ -10,6 +10,7 @@ signal stream_tool_call_received(tool_name: String, tool_input: Dictionary)
 signal query_complete(result: Dictionary)
 signal query_error(error: Dictionary)
 signal permission_requested(tool_name: String, tool_input: Dictionary, callback: Callable)
+signal status_update(message: String)
 
 var state: State = State.IDLE
 var _api_client: GCApiClient
@@ -45,6 +46,7 @@ func _start_stream(system_prompt: String) -> void:
 	state = State.STREAMING
 	_current_assistant = _conversation_history.add_assistant_message()
 	_pending_tool_calls.clear()
+	status_update.emit("Thinking...")
 
 	# Pass internal message objects — the API client converts per provider
 	var messages := _conversation_history.get_messages()
@@ -180,6 +182,7 @@ func _execute_tool_calls_async() -> void:
 		query_error.emit({"message": "Max iterations exceeded (%d)" % _max_iterations})
 		return
 
+	status_update.emit("Executing tools...")
 	for tc in _pending_tool_calls:
 		var tool: GCBaseTool = _tool_registry.get_tool(tc.name)
 
