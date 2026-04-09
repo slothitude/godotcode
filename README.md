@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="GodotCode_logo.png" alt="GodotCode" width="256">
+</p>
+
 # GodotCode
 
 AI assistant editor plugin for Godot 4.6. Chat with an AI assistant directly inside the Godot editor — read/write project files, search code, run commands, and more.
@@ -6,6 +10,7 @@ AI assistant editor plugin for Godot 4.6. Chat with an AI assistant directly ins
 
 - **Streaming chat** — Real-time SSE streaming with support for multiple LLM providers
 - **File tools** — Read, write, and edit project files via tool calls
+- **Live editor tools** — Inspect the scene tree, get/set node properties, capture screenshots, monitor errors, and install plugins at runtime
 - **Code search** — Glob pattern matching and regex content search (Grep)
 - **Shell execution** — Run bash commands with permission prompts
 - **Web tools** — Fetch URLs and search the web
@@ -84,7 +89,12 @@ addons/godotcode/
 │   ├── task_tools.gd
 │   ├── schedule_tools.gd
 │   ├── plan_mode_tool.gd
-│   └── sleep_tool.gd
+│   ├── sleep_tool.gd
+│   ├── scene_tree_tool.gd      # Live scene tree inspection & manipulation
+│   ├── node_property_tool.gd   # Get/set node properties at runtime
+│   ├── screenshot_tool.gd      # Viewport capture with vision pipeline
+│   ├── error_monitor_tool.gd   # Editor error/warning log reader
+│   └── plugin_writer_tool.gd   # Self-extending plugin installer
 ├── commands/
 │   ├── base_command.gd
 │   ├── compact_command.gd
