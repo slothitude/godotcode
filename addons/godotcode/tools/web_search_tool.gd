@@ -54,7 +54,7 @@ func _do_request(http: HTTPRequest, url: String) -> String:
 	var output: String = ""
 	var done := false
 
-	var root := Engine.get_main_loop().root
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	root.add_child(http)
 	http.request(url, ["User-Agent: Mozilla/5.0"])
 	http.request_completed.connect(func(_result, _code, _headers, body: PackedByteArray):

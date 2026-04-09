@@ -46,7 +46,7 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 
 func _fetch_url(url: String) -> String:
 	var http := HTTPRequest.new()
-	var root := Engine.get_main_loop().root
+	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	root.add_child(http)
 
 	var output: String = ""
