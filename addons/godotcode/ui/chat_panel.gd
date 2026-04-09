@@ -94,7 +94,11 @@ func _on_message_received(message: Dictionary) -> void:
 	if message.get("role") == "assistant":
 		var content = message.get("content", "")
 		if content is String and content != "":
-			_add_message_bubble("assistant", content)
+			# If streaming label exists, it already has this content — just finalize it
+			if _streaming_label:
+				_streaming_label = null
+			else:
+				_add_message_bubble("assistant", content)
 
 
 func _on_stream_delta(text: String) -> void:
