@@ -104,7 +104,6 @@ func _on_message_received(message: Dictionary) -> void:
 func _on_stream_delta(text: String) -> void:
 	if not _streaming_label:
 		_streaming_label = _create_message_label("assistant")
-		_streaming_label.bbcode_text = ""
 	_status_label.text = "Streaming..."
 	_streaming_label.text += text
 	# Auto-scroll
