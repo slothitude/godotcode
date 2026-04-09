@@ -56,7 +56,7 @@ func send_message_streaming(messages: Array, system_prompt: String, tools: Array
 
 
 func send_message_sync(messages: Array, system_prompt: String, tools: Array) -> void:
-	"""Non-streaming request — collects full response then emits signals."""
+	## Non-streaming request — collects full response then emits signals.
 	if _is_streaming:
 		stream_error.emit({"message": "Already streaming"})
 		return
@@ -424,9 +424,6 @@ func _process_anthropic_event(event_type: String, data_str: String) -> void:
 			var usage: Dictionary = {}
 			if data.has("usage"):
 				usage = data.get("usage", {})
-			for tool_id in _current_tool_inputs:
-				var raw_json: String = _current_tool_inputs[tool_id]
-				stream_tool_input_delta.emit(tool_id, raw_json)
 			stream_complete.emit(usage, data.get("delta", {}).get("stop_reason", ""))
 
 		"ping":
