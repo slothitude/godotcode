@@ -1,12 +1,12 @@
 class_name GCWebSearchTool
 extends GCBaseTool
-## Web search using the web_eyes local API (SearXNG + crawl + summarize)
+## Web search using SearXNG directly (instant, no heavy crawling)
 
 
 func _init() -> void:
 	super._init(
 		"WebSearch",
-		"Search the web and return summarized results. Provides up-to-date information from the internet.",
+		"Search the web and return results with titles, snippets, and URLs. Provides up-to-date information from the internet.",
 		{
 			"query": {
 				"type": "string",
@@ -33,41 +33,38 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	if query == "":
 		return {"success": false, "error": "query is required"}
 
-	var settings: GCSettings = context.get("settings", null)
-	var base_url: String = "http://localhost:3000"
-	if settings:
-		base_url = settings.get_web_eyes_url()
-
 	var limit := int(input.get("limit", 5))
 	limit = mini(limit, 20)
 
-	var body := JSON.stringify({"query": query, "limit": limit})
-	var result := await _post_json(base_url + "/search", body)
+	# Query SearXNG directly — instant results with titles + snippets
+	var searx_url: String = "http://localhost:8889/search?q=%s&format=json&limit=%d" % [query.uri_encode(), limit]
+	var result := await _get_json(searx_url)
 
-	if result == null:
-		return {"success": false, "error": "Web search failed — is web_eyes running at %s?" % base_url}
+	if result.is_empty():
+		return {"success": false, "error": "Search failed — is SearXNG running at localhost:8889?"}
 
-	var summary: String = str(result.get("summary", ""))
-	var sources = result.get("sources", [])
-
-	if summary == "" and sources.size() == 0:
+	var results = result.get("results", [])
+	if results.size() == 0:
 		return {"success": true, "data": "No results found for: %s" % query}
 
-	var output: String = summary
-	if sources.size() > 0:
-		output += "\n\nSources:"
-		for src in sources:
-			var title: String = str(src.get("title", src.get("url", "")))
-			var url: String = str(src.get("url", ""))
-			if title != "" and url != "":
-				output += "\n- %s (%s)" % [title, url]
-			elif url != "":
-				output += "\n- %s" % url
+	var output: String = "Search results for: %s\n" % query
+	var count := 0
+	for r in results:
+		if count >= limit:
+			break
+		var title: String = str(r.get("title", ""))
+		var url: String = str(r.get("url", ""))
+		var snippet: String = str(r.get("content", ""))
+		output += "\n%d. %s" % [count + 1, title]
+		output += "\n   %s" % url
+		if snippet != "":
+			output += "\n   %s" % snippet
+		count += 1
 
 	return {"success": true, "data": output}
 
 
-func _post_json(url: String, json_body: String) -> Dictionary:
+func _get_json(url: String) -> Dictionary:
 	var http := HTTPRequest.new()
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	root.add_child(http)
@@ -75,8 +72,7 @@ func _post_json(url: String, json_body: String) -> Dictionary:
 	var output: Dictionary = {}
 	var done := false
 
-	var headers := ["Content-Type: application/json"]
-	http.request(url, headers, HTTPClient.METHOD_POST, json_body)
+	http.request(url, [], HTTPClient.METHOD_GET, "")
 	http.request_completed.connect(func(_result, _code, _headers, body: PackedByteArray):
 		var text := body.get_string_from_utf8()
 		var json := JSON.new()
@@ -87,7 +83,7 @@ func _post_json(url: String, json_body: String) -> Dictionary:
 
 	var start := Time.get_ticks_msec()
 	while not done:
-		if Time.get_ticks_msec() - start > 30000:
+		if Time.get_ticks_msec() - start > 15000:
 			break
 		await Engine.get_main_loop().process_frame
 
