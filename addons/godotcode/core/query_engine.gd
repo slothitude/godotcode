@@ -120,7 +120,7 @@ func _on_stream_complete(usage: Dictionary, stop_reason: String) -> void:
 	# Process tool calls or complete
 	if _pending_tool_calls.size() > 0:
 		state = State.TOOL_EXECUTING
-		_execute_tool_calls()
+		_execute_tool_calls_async()
 	else:
 		state = State.COMPLETE
 		query_complete.emit({"usage": usage, "stop_reason": stop_reason})
@@ -173,17 +173,107 @@ func _execute_tool_calls() -> void:
 	_start_stream(system_prompt)
 
 
+func _execute_tool_calls_async() -> void:
+	_iteration_count += 1
+	if _iteration_count > _max_iterations:
+		state = State.ERROR
+		query_error.emit({"message": "Max iterations exceeded (%d)" % _max_iterations})
+		return
+
+	for tc in _pending_tool_calls:
+		var tool: GCBaseTool = _tool_registry.get_tool(tc.name)
+
+		if not tool:
+			_conversation_history.add_tool_result(tc.id, "Unknown tool: %s" % tc.name, true)
+			continue
+
+		# Check permissions
+		var perm := tool.check_permissions(tc.input, _build_context())
+		var behavior: String = perm.get("behavior", "ask")
+
+		match behavior:
+			"deny":
+				_conversation_history.add_tool_result(tc.id, "Permission denied: " + perm.get("message", ""), true)
+			"ask":
+				var mode := _permission_manager.get_current_mode() if _permission_manager else "default"
+				if mode == "bypass":
+					await _execute_single_tool_async(tool, tc)
+				else:
+					permission_requested.emit(tc.name, tc.input, func(approved: bool):
+						if approved:
+							await _execute_single_tool_async(tool, tc)
+						else:
+							_conversation_history.add_tool_result(tc.id, "User denied permission", true)
+					)
+			"allow":
+				await _execute_single_tool_async(tool, tc)
+
+	_pending_tool_calls.clear()
+
+	# Re-query with tool results
+	var system_prompt := _build_system_prompt()
+	_start_stream(system_prompt)
+
+
 func _execute_single_tool(tool: GCBaseTool, tool_call: Dictionary) -> void:
 	stream_tool_call_received.emit(tool_call.name, tool_call.input)
 	var result := tool.execute(tool_call.input, _build_context())
-	var tool_result := tool.to_api_result(result, tool_call.id)
 
-	# Add to conversation
-	_conversation_history.add_tool_result(
-		tool_call.id,
-		tool_result.get("content", ""),
-		tool_result.get("is_error", false)
-	)
+	# Check if tool returned vision content
+	if tool.has_vision_result(result) and result.get("success", false):
+		# Build vision content blocks for the API
+		var vision_blocks: Array = [
+			{
+				"type": "image",
+				"source": {
+					"type": "base64",
+					"media_type": result.get("media_type", "image/png"),
+					"data": result.get("vision_data", "")
+				}
+			},
+			{
+				"type": "text",
+				"text": str(result.get("data", ""))
+			}
+		]
+		_conversation_history.add_tool_result(tool_call.id, vision_blocks, false)
+	else:
+		var tool_result := tool.to_api_result(result, tool_call.id)
+		_conversation_history.add_tool_result(
+			tool_call.id,
+			tool_result.get("content", ""),
+			tool_result.get("is_error", false)
+		)
+
+
+func _execute_single_tool_async(tool: GCBaseTool, tool_call: Dictionary) -> void:
+	stream_tool_call_received.emit(tool_call.name, tool_call.input)
+	var result = await tool.execute(tool_call.input, _build_context())
+
+	# Check if tool returned vision content
+	if tool.has_vision_result(result) and result.get("success", false):
+		var vision_blocks: Array = [
+			{
+				"type": "image",
+				"source": {
+					"type": "base64",
+					"media_type": result.get("media_type", "image/png"),
+					"data": result.get("vision_data", "")
+				}
+			},
+			{
+				"type": "text",
+				"text": str(result.get("data", ""))
+			}
+		]
+		_conversation_history.add_tool_result(tool_call.id, vision_blocks, false)
+	else:
+		var tool_result := tool.to_api_result(result, tool_call.id)
+		_conversation_history.add_tool_result(
+			tool_call.id,
+			tool_result.get("content", ""),
+			tool_result.get("is_error", false)
+		)
 
 
 func _build_system_prompt() -> String:
