@@ -50,13 +50,12 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 
 
 func _do_request(http: HTTPRequest, url: String) -> String:
-	# Synchronous HTTP request using a local approach
-	# Note: GDScript HTTPRequest is async, so we use a workaround
+	# HTTPRequest must be in the scene tree to work
 	var output: String = ""
 	var done := false
 
-	var node := Node.new()
-	node.add_child(http)
+	var root := Engine.get_main_loop().root
+	root.add_child(http)
 	http.request(url, ["User-Agent: Mozilla/5.0"])
 	http.request_completed.connect(func(_result, _code, _headers, body: PackedByteArray):
 		output = body.get_string_from_utf8()
@@ -70,7 +69,8 @@ func _do_request(http: HTTPRequest, url: String) -> String:
 			break
 		await Engine.get_main_loop().process_frame
 
-	node.queue_free()
+	if http.is_inside_tree():
+		http.queue_free()
 	return output
 
 

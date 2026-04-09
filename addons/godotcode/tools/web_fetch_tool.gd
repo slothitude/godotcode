@@ -46,8 +46,8 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 
 func _fetch_url(url: String) -> String:
 	var http := HTTPRequest.new()
-	var node := Node.new()
-	node.add_child(http)
+	var root := Engine.get_main_loop().root
+	root.add_child(http)
 
 	var output: String = ""
 	var done := false
@@ -67,7 +67,8 @@ func _fetch_url(url: String) -> String:
 			break
 		await Engine.get_main_loop().process_frame
 
-	node.queue_free()
+	if http.is_inside_tree():
+		http.queue_free()
 	return output
 
 
