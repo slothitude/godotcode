@@ -4,17 +4,16 @@ extends AcceptDialog
 
 var _settings: GCSettings
 
+@onready var _provider_option: OptionButton = $Content/ProviderSection/ProviderOption
 @onready var _api_key_input: LineEdit = $Content/ApiKeySection/ApiKeyInput
-@onready var _model_option: OptionButton = $Content/ModelSection/ModelOption
+@onready var _model_input: LineEdit = $Content/ModelSection/ModelInput
 @onready var _base_url_input: LineEdit = $Content/BaseUrlSection/BaseUrlInput
 @onready var _permission_option: OptionButton = $Content/PermissionSection/PermissionOption
 
-const MODELS := [
-	"claude-sonnet-4-20250514",
-	"claude-opus-4-20250514",
-	"claude-haiku-4-5-20251001",
-	"claude-3-5-sonnet-20241022",
-	"claude-3-5-haiku-20241022",
+const PROVIDERS := [
+	{"id": "anthropic", "label": "Anthropic"},
+	{"id": "openai", "label": "OpenAI"},
+	{"id": "openai_compatible", "label": "OpenAI Compatible"},
 ]
 
 const PERMISSION_MODES := [
@@ -25,18 +24,20 @@ const PERMISSION_MODES := [
 
 
 func _ready() -> void:
-	# Populate model options
-	for model in MODELS:
-		_model_option.add_item(model)
-
-	# Populate permission mode options
+	for p in PROVIDERS:
+		_provider_option.add_item(p.label)
 	for mode in PERMISSION_MODES:
 		_permission_option.add_item(mode)
-
-	# Load current settings
 	_load_settings()
-
 	confirmed.connect(_on_confirmed)
+	_provider_option.item_selected.connect(_on_provider_changed)
+
+
+func _on_provider_changed(index: int) -> void:
+	var provider_id: String = PROVIDERS[index].id
+	var defaults: Dictionary = GCSettings.PROVIDER_DEFAULTS.get(provider_id, {})
+	_model_input.placeholder_text = "e.g. %s" % defaults.get("model", "model-name")
+	_base_url_input.placeholder_text = defaults.get("base_url", "https://api.example.com")
 
 
 func _load_settings() -> void:
@@ -44,15 +45,15 @@ func _load_settings() -> void:
 		return
 
 	_api_key_input.text = _settings.get_api_key()
+	_model_input.text = _settings.get_model()
 	_base_url_input.text = _settings.get_base_url()
 
-	var current_model := _settings.get_model()
-	for i in MODELS.size():
-		if MODELS[i] == current_model:
-			_model_option.selected = i
+	var current_provider := _settings.get_provider()
+	for i in PROVIDERS.size():
+		if PROVIDERS[i].id == current_provider:
+			_provider_option.selected = i
+			_on_provider_changed(i)
 			break
-	if _model_option.selected == -1:
-		_model_option.selected = 0
 
 	var current_perm := _settings.get_permission_mode()
 	for i in PERMISSION_MODES.size():
@@ -65,7 +66,8 @@ func _on_confirmed() -> void:
 	if not _settings:
 		return
 
+	_settings.set_setting(GCSettings.PROVIDER, PROVIDERS[_provider_option.selected].id)
 	_settings.set_setting(GCSettings.API_KEY, _api_key_input.text)
-	_settings.set_setting(GCSettings.MODEL, MODELS[_model_option.selected])
+	_settings.set_setting(GCSettings.MODEL, _model_input.text)
 	_settings.set_setting(GCSettings.BASE_URL, _base_url_input.text)
 	_settings.set_setting(GCSettings.PERMISSION_MODE, PERMISSION_MODES[_permission_option.selected])

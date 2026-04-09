@@ -78,7 +78,7 @@ func compact(keep_last_n: int = 4) -> void:
 	_is_dirty = true
 
 
-## Convert all messages to Anthropic API format (for sending)
+## Convert all messages to API format (for sending)
 func to_api_messages() -> Array:
 	var api_msgs: Array = []
 
@@ -198,4 +198,4 @@ func load_from_file() -> bool:
 func _get_conversation_dir() -> String:
 	if _settings:
 		return _settings.get_conversation_dir()
-	return "user://claude_conversations"
+	return "user://godotcode_conversations"

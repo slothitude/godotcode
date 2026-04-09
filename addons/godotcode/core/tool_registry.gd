@@ -29,7 +29,7 @@ func get_tool_names() -> Array:
 	return _tools.keys()
 
 
-## Export all tools in Anthropic tool format for API requests
+## Export all tools in tool definition format for API requests
 func to_api_format() -> Array:
 	var result: Array = []
 	for tool_name in _tools:

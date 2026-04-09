@@ -1,6 +1,6 @@
 class_name GCMessageTypes
 extends RefCounted
-## Data classes for Anthropic Messages API message types
+## Data classes for LLM API message types
 
 
 class BaseMessage:
@@ -103,7 +103,7 @@ class ToolResultMessage:
 	var is_error: bool = false
 
 	func _init(p_tool_use_id: String, p_content: String, p_is_error: bool = false) -> void:
-		super._init("user")  # tool_results go in user role for Anthropic API
+		super._init("user")  # tool_results go in user role
 		tool_use_id = p_tool_use_id
 		content = p_content
 		is_error = p_is_error
