@@ -45,6 +45,7 @@ func _enter_tree() -> void:
 	_query_engine._permission_manager = _permission_manager
 	_query_engine._cost_tracker = _cost_tracker
 	_query_engine._context_manager = _context_manager
+	_query_engine._settings = _settings
 
 	# Register built-in tools
 	_register_tools()

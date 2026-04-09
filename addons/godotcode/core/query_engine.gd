@@ -19,6 +19,7 @@ var _conversation_history: GCConversationHistory
 var _permission_manager: GCPermissionManager
 var _cost_tracker: GCCostTracker
 var _context_manager: GCContextManager
+var _settings: GCSettings
 
 var _pending_tool_calls: Array = []  # {name, id, input}
 var _current_assistant: GCMessageTypes.AssistantMessage
@@ -297,4 +298,5 @@ func _build_context() -> Dictionary:
 		"project_path": ProjectSettings.globalize_path("res://"),
 		"conversation_history": _conversation_history,
 		"tool_registry": _tool_registry,
+		"settings": _settings,
 	}
