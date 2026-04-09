@@ -46,8 +46,9 @@ func _start_stream(system_prompt: String) -> void:
 	_current_assistant = _conversation_history.add_assistant_message()
 	_pending_tool_calls.clear()
 
-	var messages := _conversation_history.to_api_messages()
-	var tools := _tool_registry.to_api_format()
+	# Pass internal message objects — the API client converts per provider
+	var messages := _conversation_history.get_messages()
+	var tools_array: Array = _tool_registry.get_all_tools().values()
 
 	# Connect API signals (will auto-disconnect when complete)
 	if not _api_client.stream_text_delta.is_connected(_on_stream_text):
@@ -61,7 +62,7 @@ func _start_stream(system_prompt: String) -> void:
 	if not _api_client.stream_error.is_connected(_on_stream_error):
 		_api_client.stream_error.connect(_on_stream_error)
 
-	_api_client.send_message_streaming(messages, system_prompt, tools)
+	_api_client.send_message_streaming(messages, system_prompt, tools_array)
 
 
 func _on_stream_text(text: String) -> void:
@@ -152,13 +153,10 @@ func _execute_tool_calls() -> void:
 			"deny":
 				_conversation_history.add_tool_result(tc.id, "Permission denied: " + perm.get("message", ""), true)
 			"ask":
-				# In a real implementation, this would show a dialog and wait
-				# For now, auto-approve in bypass mode, otherwise request permission
 				var mode := _permission_manager.get_current_mode() if _permission_manager else "default"
 				if mode == "bypass":
 					_execute_single_tool(tool, tc)
 				else:
-					# Request permission via signal — the UI will handle the dialog
 					permission_requested.emit(tc.name, tc.input, func(approved: bool):
 						if approved:
 							_execute_single_tool(tool, tc)

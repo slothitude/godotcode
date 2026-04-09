@@ -5,6 +5,7 @@ extends RefCounted
 const SETTINGS_PREFIX := "godotcode/"
 
 # Setting keys
+const PROVIDER := "provider"
 const API_KEY := "api_key"
 const MODEL := "model"
 const BASE_URL := "base_url"
@@ -14,9 +15,17 @@ const PERMISSION_MODE := "permission_mode"
 const THEME := "theme"
 const CONVERSATION_DIR := "conversation_dir"
 
-# Defaults
-const DEFAULT_MODEL := "claude-sonnet-4-20250514"
-const DEFAULT_BASE_URL := "https://api.anthropic.com"
+# Provider options
+const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
+
+# Per-provider defaults
+const PROVIDER_DEFAULTS := {
+	"anthropic": {"base_url": "https://api.anthropic.com", "model": "claude-sonnet-4-20250514"},
+	"openai": {"base_url": "https://api.openai.com", "model": "gpt-4o"},
+	"openai_compatible": {"base_url": "http://localhost:11434", "model": "llama3"},
+}
+
+const DEFAULT_PROVIDER := "anthropic"
 const DEFAULT_MAX_TOKENS := 8192
 const DEFAULT_TEMPERATURE := 0.0
 const DEFAULT_PERMISSION_MODE := "default"
@@ -31,12 +40,18 @@ func initialize() -> void:
 
 
 func _ensure_defaults() -> void:
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + PROVIDER):
+		set_setting(PROVIDER, DEFAULT_PROVIDER)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + API_KEY):
 		set_setting(API_KEY, "")
+
+	var provider := get_provider()
+	var defaults: Dictionary = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS["openai_compatible"])
+
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + MODEL):
-		set_setting(MODEL, DEFAULT_MODEL)
+		set_setting(MODEL, defaults.get("model", ""))
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + BASE_URL):
-		set_setting(BASE_URL, DEFAULT_BASE_URL)
+		set_setting(BASE_URL, defaults.get("base_url", ""))
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + MAX_TOKENS):
 		set_setting(MAX_TOKENS, DEFAULT_MAX_TOKENS)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + TEMPERATURE):
@@ -60,16 +75,24 @@ func set_setting(key: String, value: Variant) -> void:
 	_editor_settings.set_setting(SETTINGS_PREFIX + key, value)
 
 
+func get_provider() -> String:
+	return str(get_setting(PROVIDER, DEFAULT_PROVIDER))
+
+
 func get_api_key() -> String:
 	return str(get_setting(API_KEY, ""))
 
 
 func get_model() -> String:
-	return str(get_setting(MODEL, DEFAULT_MODEL))
+	var provider := get_provider()
+	var defaults: Dictionary = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS["openai_compatible"])
+	return str(get_setting(MODEL, defaults.get("model", "")))
 
 
 func get_base_url() -> String:
-	var url := str(get_setting(BASE_URL, DEFAULT_BASE_URL))
+	var provider := get_provider()
+	var defaults: Dictionary = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS["openai_compatible"])
+	var url := str(get_setting(BASE_URL, defaults.get("base_url", "")))
 	if url.right(1) == "/":
 		url = url.left(url.length() - 1)
 	return url
@@ -94,5 +117,5 @@ func get_theme() -> String:
 func get_conversation_dir() -> String:
 	var dir := str(get_setting(CONVERSATION_DIR, ""))
 	if dir == "":
-		dir = ProjectSettings.globalize_path("user://claude_conversations")
+		dir = ProjectSettings.globalize_path("user://godotcode_conversations")
 	return dir
