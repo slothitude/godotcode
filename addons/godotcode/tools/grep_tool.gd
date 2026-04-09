@@ -144,6 +144,6 @@ func _search_file(file_path: String, regex: RegEx, output_mode: String, head_lim
 						return
 
 
-func _match_simple_glob(file_name: String, pattern: String) -> void:
+func _match_simple_glob(file_name: String, pattern: String) -> bool:
 	var glob_tool := GCGlobTool.new()
 	return glob_tool._glob_match(file_name, pattern)

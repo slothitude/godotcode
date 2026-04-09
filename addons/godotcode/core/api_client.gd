@@ -172,7 +172,7 @@ func _convert_messages_anthropic(messages: Array) -> Array:
 			if msg is GCMessageTypes.UserMessage:
 				result.append(msg.to_api_dict())
 			elif msg is GCMessageTypes.AssistantMessage:
-				var d := msg.to_api_dict()
+				var d: Dictionary = msg.to_api_dict()
 				if (d.get("content") as Array).size() > 0:
 					result.append(d)
 

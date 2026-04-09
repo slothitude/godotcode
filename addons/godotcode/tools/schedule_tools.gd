@@ -132,7 +132,7 @@ func _list_jobs() -> Dictionary:
 
 
 func _start_timer(job_id: String, interval_sec: float, recurring: bool) -> void:
-	var timer := Engine.get_main_loop().create_timer(interval_sec)
+	var timer: SceneTreeTimer = Engine.get_main_loop().create_timer(interval_sec)
 	timer.timeout.connect(func():
 		var job: Dictionary = _jobs.get(job_id, {})
 		if job.is_empty():

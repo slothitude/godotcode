@@ -18,7 +18,7 @@ func get_display_messages() -> Array:
 		if msg is GCMessageTypes.UserMessage:
 			result.append({"role": "user", "content": msg.content})
 		elif msg is GCMessageTypes.AssistantMessage:
-			var text := msg.text_content
+			var text: String = msg.text_content
 			if text != "":
 				result.append({"role": "assistant", "content": text})
 			for tu in msg.tool_uses:
@@ -97,7 +97,7 @@ func to_api_messages() -> Array:
 			if msg is GCMessageTypes.UserMessage:
 				api_msgs.append(msg.to_api_dict())
 			elif msg is GCMessageTypes.AssistantMessage:
-				var d := msg.to_api_dict()
+				var d: Dictionary = msg.to_api_dict()
 				# Only add if there's content
 				if (d.get("content") as Array).size() > 0:
 					api_msgs.append(d)

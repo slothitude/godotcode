@@ -103,6 +103,6 @@ func _html_to_text(html: String) -> String:
 	# Collapse whitespace
 	regex.compile("\\n{3,}")
 	text = regex.sub(text, "\n\n", true)
-	regex.compile("^[ \\t]+", "")
+	regex.compile("^[ \\t]+")
 	text = regex.sub(text, "", true)
 	return text.strip_edges()

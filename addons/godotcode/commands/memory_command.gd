@@ -3,7 +3,7 @@ extends GCBaseCommand
 ## /memory — View persistent memory
 
 
-func _init() -> String = "":
+func _init():
 	super._init("memory", "View or manage persistent memory")
 
 
