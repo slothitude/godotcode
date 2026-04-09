@@ -102,6 +102,19 @@ func _register_tools() -> void:
 	_tool_registry.register(schedule_tools)
 	_tool_registry.register(sleep_tool)
 
+	# Live editor tools
+	var error_monitor := GCErrorMonitorTool.new()
+	var node_property := GCNodePropertyTool.new()
+	var scene_tree := GCSceneTreeTool.new()
+	var screenshot := GCScreenshotTool.new()
+	var plugin_writer := GCPluginWriterTool.new()
+
+	_tool_registry.register(error_monitor)
+	_tool_registry.register(node_property)
+	_tool_registry.register(scene_tree)
+	_tool_registry.register(screenshot)
+	_tool_registry.register(plugin_writer)
+
 
 func _register_commands() -> void:
 	var commands: Array[GCBaseCommand] = [

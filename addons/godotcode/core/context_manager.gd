@@ -33,6 +33,9 @@ func build_system_prompt() -> String:
 
 	var prompt := "You are GodotCode, an AI assistant integrated into the Godot editor as a plugin. "
 	prompt += "You help with GDScript, Godot scenes, shaders, and general programming tasks.\n\n"
+	prompt += "You have direct access to the live editor via SceneTree, NodeProperty, Screenshot, ErrorMonitor, and PluginWriter tools. "
+	prompt += "If you need a capability you don't have, write a GDScript EditorPlugin that provides it. "
+	prompt += "Use PluginWriter to install it. You are not limited to your current toolset — you can extend yourself.\n\n"
 
 	if not parts.is_empty():
 		prompt += "## Project Context\n\n"
@@ -124,6 +127,15 @@ func _get_current_scene_info() -> String:
 	if Engine.is_editor_hint():
 		var edited_scene := EditorInterface.get_edited_scene_root()
 		if edited_scene:
-			var scene_path := edited_scene.scene_file_path
-			return "Currently editing: %s" % scene_path
+			var info := "Currently editing: %s" % edited_scene.scene_file_path
+			info += "\nRoot node: %s [%s]" % [edited_scene.name, edited_scene.get_class()]
+			var child_count := edited_scene.get_child_count()
+			if child_count > 0:
+				info += "\nTop-level children (%d):" % child_count
+				for i in range(mini(child_count, 10)):
+					var child: Node = edited_scene.get_child(i)
+					info += "\n  - %s [%s]" % [child.name, child.get_class()]
+				if child_count > 10:
+					info += "\n  ... and %d more" % (child_count - 10)
+			return info
 	return ""

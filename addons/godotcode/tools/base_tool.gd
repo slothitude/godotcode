@@ -43,6 +43,10 @@ func to_tool_definition() -> Dictionary:
 	}
 
 
+func has_vision_result(result: Dictionary) -> bool:
+	return result.get("is_vision", false)
+
+
 func to_api_result(result: Dictionary, tool_use_id: String) -> Dictionary:
 	var content: String
 	if result.get("success", false):

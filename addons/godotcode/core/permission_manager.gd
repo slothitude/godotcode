@@ -19,6 +19,11 @@ var _rules: Dictionary = {
 	"Schedule": "allow",
 	"Sleep": "allow",
 	"EnterPlanMode": "allow",
+	"SceneTree": "ask",
+	"NodeProperty": "ask",
+	"Screenshot": "allow",
+	"ErrorMonitor": "allow",
+	"PluginWriter": "ask",
 }
 
 
@@ -40,7 +45,7 @@ func check_tool_permission(tool_name: String, tool_input: Dictionary, context: D
 
 	# Plan mode: only allow read-only tools
 	if mode == "plan":
-		var read_only_tools := ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+		var read_only_tools := ["Read", "Glob", "Grep", "WebSearch", "WebFetch", "Screenshot", "ErrorMonitor"]
 		if tool_name in read_only_tools:
 			return {"behavior": "allow"}
 		return {"behavior": "deny", "message": "Plan mode: only read-only tools allowed"}

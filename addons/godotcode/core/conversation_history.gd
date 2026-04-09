@@ -42,7 +42,7 @@ func add_assistant_message() -> GCMessageTypes.AssistantMessage:
 	return msg
 
 
-func add_tool_result(tool_use_id: String, content: String, is_error: bool = false) -> GCMessageTypes.ToolResultMessage:
+func add_tool_result(tool_use_id: String, content: Variant = "", is_error: bool = false) -> GCMessageTypes.ToolResultMessage:
 	var msg := GCMessageTypes.ToolResultMessage.new(tool_use_id, content, is_error)
 	_messages.append(msg)
 	_is_dirty = true
@@ -112,18 +112,36 @@ func to_api_messages() -> Array:
 func _merge_tool_results(results: Array) -> Dictionary:
 	var content_blocks: Array = []
 	for r in results:
-		var block := {
-			"type": "tool_result",
-			"tool_use_id": r.tool_use_id,
-			"content": r.content
-		}
+		# Handle both String and Array content (vision)
+		if r.content is Array:
+			# Vision content blocks pass through
+			content_blocks.append({
+				"type": "tool_result",
+				"tool_use_id": r.tool_use_id,
+				"content": r.content
+			})
+		else:
+			var block := {
+				"type": "tool_result",
+				"tool_use_id": r.tool_use_id,
+				"content": str(r.content)
+			}
+			if r.is_error:
+				block["is_error"] = true
+			content_blocks.append(block)
+
+	# Mark if any result has is_error
+	var has_error := false
+	for r in results:
 		if r.is_error:
-			block["is_error"] = true
-		content_blocks.append(block)
-	return {
+			has_error = true
+			break
+
+	var result := {
 		"role": "user",
 		"content": content_blocks
 	}
+	return result
 
 
 ## Serialize to JSON-compatible array

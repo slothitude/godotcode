@@ -99,21 +99,27 @@ class AssistantMessage:
 class ToolResultMessage:
 	extends BaseMessage
 	var tool_use_id: String
-	var content: String
+	var content: Variant  # String for text, Array for vision content blocks
 	var is_error: bool = false
 
-	func _init(p_tool_use_id: String, p_content: String, p_is_error: bool = false) -> void:
+	func _init(p_tool_use_id: String, p_content: Variant = "", p_is_error: bool = false) -> void:
 		super._init("user")  # tool_results go in user role
 		tool_use_id = p_tool_use_id
 		content = p_content
 		is_error = p_is_error
 
 	func to_api_dict() -> Dictionary:
-		var result_content: String = content
+		var block_content: Variant
+		if content is Array:
+			# Vision content blocks — pass through directly
+			block_content = content
+		else:
+			block_content = str(content)
+
 		var block := {
 			"type": "tool_result",
 			"tool_use_id": tool_use_id,
-			"content": result_content
+			"content": block_content
 		}
 		if is_error:
 			block["is_error"] = true
