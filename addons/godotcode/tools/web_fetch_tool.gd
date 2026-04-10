@@ -58,8 +58,7 @@ func _post_json(url: String, json_body: String) -> Dictionary:
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	root.add_child(http)
 
-	var output: Dictionary = {}
-	var done := false
+	var state: Dictionary = {"output": {}, "done": false}
 
 	var headers := ["Content-Type: application/json"]
 	http.request(url, headers, HTTPClient.METHOD_POST, json_body)
@@ -67,16 +66,16 @@ func _post_json(url: String, json_body: String) -> Dictionary:
 		var text := body.get_string_from_utf8()
 		var json := JSON.new()
 		if json.parse(text) == OK:
-			output = json.data
-		done = true
+			state["output"] = json.data
+		state["done"] = true
 	)
 
 	var start := Time.get_ticks_msec()
-	while not done:
+	while not state["done"]:
 		if Time.get_ticks_msec() - start > 30000:
 			break
 		await Engine.get_main_loop().process_frame
 
 	if http.is_inside_tree():
 		http.queue_free()
-	return output
+	return state["output"]
