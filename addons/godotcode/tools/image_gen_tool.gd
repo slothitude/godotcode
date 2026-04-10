@@ -129,12 +129,13 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 	if api_key == "":
 		return {"success": false, "error": "NVIDIA NIM requires an API key. Set it in GodotCode settings."}
 
-	var url := "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-kontext-dev"
+	var url := "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell"
 	var body := JSON.stringify({
 		"prompt": prompt,
-		"steps": 30,
-		"cfg_scale": 3.5,
-		"seed": 0
+		"width": 1024,
+		"height": 1024,
+		"seed": 0,
+		"steps": 4
 	})
 
 	var headers := PackedStringArray([
@@ -182,18 +183,22 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 	if output.has("_raw"):
 		return {"success": false, "error": "NVIDIA API returned non-JSON: %s" % str(output["_raw"]).left(200)}
 
-	# Flux Kontext returns image data in various formats
-	# Try common response structures
+	# Check for API error
+	if output.has("status") and str(output.get("status", "")) != "":
+		var detail: String = str(output.get("detail", output.get("title", "")))
+		return {"success": false, "error": "NVIDIA API error: %s" % detail}
+
+	# Flux.1-schnell returns artifacts array with base64 image data
 	var image_data: String = ""
 
-	# Check for base64 in artiifacts (NVIDIA genai format)
 	var artifacts = output.get("artifacts", [])
 	for artifact in artifacts:
-		if artifact is Dictionary and artifact.get("type") == "image":
+		if artifact is Dictionary:
 			image_data = str(artifact.get("base64", ""))
-			break
+			if image_data != "":
+				break
 
-	# Check for direct base64 field
+	# Fallback: check common alternative response structures
 	if image_data == "" and output.has("image"):
 		var img = output["image"]
 		if img is String:
@@ -201,7 +206,6 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 		elif img is Dictionary and img.has("base64"):
 			image_data = str(img["base64"])
 
-	# Check for data URL
 	if image_data == "" and output.has("data"):
 		var d = output["data"]
 		if d is Array and d.size() > 0:
@@ -210,11 +214,11 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 				image_data = str(first.get("b64_json", first.get("base64", "")))
 
 	if image_data == "":
-		return {"success": false, "error": "No image data in NVIDIA response. Response keys: %s" % str(output.keys())}
+		return {"success": false, "error": "No image data in NVIDIA response. Keys: %s" % str(output.keys())}
 
 	return {
 		"success": true,
-		"data": "Image generated via NVIDIA Flux Kontext",
+		"data": "Image generated via NVIDIA Flux.1-schnell",
 		"is_vision": true,
 		"vision_data": image_data,
 		"media_type": "image/png"
