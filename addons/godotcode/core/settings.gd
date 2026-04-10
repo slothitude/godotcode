@@ -19,6 +19,7 @@ const SEARXNG_URL := "searxng_url"
 const IMAGE_GEN_PROVIDER := "image_gen_provider"
 const IMAGE_GEN_MODEL := "image_gen_model"
 const OLLAMA_URL := "ollama_url"
+const NIM_API_KEY := "nim_api_key"
 
 # Provider options
 const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
@@ -40,6 +41,7 @@ const DEFAULT_SEARXNG_URL := "http://localhost:8889"
 const DEFAULT_IMAGE_GEN_PROVIDER := "nvidia"
 const DEFAULT_IMAGE_GEN_MODEL := "flux.1-schnell"
 const DEFAULT_OLLAMA_URL := "http://localhost:11434"
+const DEFAULT_NIM_API_KEY := "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"
 
 var _editor_settings: EditorSettings
 
@@ -76,12 +78,13 @@ func _ensure_defaults() -> void:
 		set_setting(WEB_EYES_URL, DEFAULT_WEB_EYES_URL)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + SEARXNG_URL):
 		set_setting(SEARXNG_URL, DEFAULT_SEARXNG_URL)
-	if not _editor_settings.has_setting(SETTINGS_PREFIX + IMAGE_GEN_PROVIDER):
-		set_setting(IMAGE_GEN_PROVIDER, DEFAULT_IMAGE_GEN_PROVIDER)
-	if not _editor_settings.has_setting(SETTINGS_PREFIX + IMAGE_GEN_MODEL):
-		set_setting(IMAGE_GEN_MODEL, DEFAULT_IMAGE_GEN_MODEL)
+	# Always force image gen defaults (updated from ollama → nvidia)
+	set_setting(IMAGE_GEN_PROVIDER, DEFAULT_IMAGE_GEN_PROVIDER)
+	set_setting(IMAGE_GEN_MODEL, DEFAULT_IMAGE_GEN_MODEL)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + OLLAMA_URL):
 		set_setting(OLLAMA_URL, DEFAULT_OLLAMA_URL)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + NIM_API_KEY):
+		set_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY)
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:
@@ -168,3 +171,7 @@ func get_ollama_url() -> String:
 	if url.right(1) == "/":
 		url = url.left(url.length() - 1)
 	return url
+
+
+func get_nim_api_key() -> String:
+	return str(get_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY))
