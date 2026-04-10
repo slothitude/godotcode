@@ -119,8 +119,8 @@ func _generate_ollama(prompt: String, input: Dictionary, context: Dictionary) ->
 func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) -> Dictionary:
 	var api_key: String = ""
 	var settings = context.get("settings")
-	if settings and settings.has_method("get_api_key"):
-		api_key = settings.get_api_key()
+	if settings and settings.has_method("get_nim_api_key"):
+		api_key = settings.get_nim_api_key()
 
 	if api_key == "":
 		return {"success": false, "error": "NVIDIA NIM requires an API key. Set it in GodotCode settings."}
