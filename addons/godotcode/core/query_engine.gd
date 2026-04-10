@@ -11,6 +11,7 @@ signal query_complete(result: Dictionary)
 signal query_error(error: Dictionary)
 signal permission_requested(tool_name: String, tool_input: Dictionary, callback: Callable)
 signal status_update(message: String)
+signal tool_vision_result(tool_name: String, base64_data: String, media_type: String, description: String)
 
 var state: State = State.IDLE
 var _api_client: GCApiClient
@@ -243,6 +244,12 @@ func _execute_single_tool(tool: GCBaseTool, tool_call: Dictionary) -> void:
 			}
 		]
 		_conversation_history.add_tool_result(tool_call.id, vision_blocks, false)
+		tool_vision_result.emit(
+			tool_call.name,
+			result.get("vision_data", ""),
+			result.get("media_type", "image/png"),
+			str(result.get("data", ""))
+		)
 	else:
 		var tool_result := tool.to_api_result(result, tool_call.id)
 		_conversation_history.add_tool_result(
@@ -273,6 +280,12 @@ func _execute_single_tool_async(tool: GCBaseTool, tool_call: Dictionary) -> void
 			}
 		]
 		_conversation_history.add_tool_result(tool_call.id, vision_blocks, false)
+		tool_vision_result.emit(
+			tool_call.name,
+			result.get("vision_data", ""),
+			result.get("media_type", "image/png"),
+			str(result.get("data", ""))
+		)
 	else:
 		var tool_result := tool.to_api_result(result, tool_call.id)
 		_conversation_history.add_tool_result(

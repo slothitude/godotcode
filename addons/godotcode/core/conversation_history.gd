@@ -24,8 +24,35 @@ func get_display_messages() -> Array:
 			for tu in msg.tool_uses:
 				result.append({"role": "tool", "content": "[Tool: %s]" % tu.name})
 		elif msg is GCMessageTypes.ToolResultMessage:
-			result.append({"role": "tool", "content": msg.content})
+			if msg.content is Array:
+				# Vision content — extract image data for display
+				var vision_info := _extract_vision_info(msg.content)
+				if vision_info.has("base64_data"):
+					result.append({
+						"role": "vision",
+						"base64_data": vision_info["base64_data"],
+						"media_type": vision_info.get("media_type", "image/png"),
+						"description": vision_info.get("description", "Image"),
+					})
+				else:
+					result.append({"role": "tool", "content": vision_info.get("description", "Image (data unavailable)")})
+			else:
+				result.append({"role": "tool", "content": str(msg.content)})
 	return result
+
+
+func _extract_vision_info(content: Array) -> Dictionary:
+	var info: Dictionary = {}
+	for block in content:
+		if block is Dictionary:
+			if block.get("type") == "image" and block.has("source"):
+				var source: Dictionary = block["source"]
+				if source.get("type") == "base64":
+					info["base64_data"] = str(source.get("data", ""))
+					info["media_type"] = str(source.get("media_type", "image/png"))
+			elif block.get("type") == "text":
+				info["description"] = str(block.get("text", ""))
+	return info
 
 
 func add_user_message(text: String) -> GCMessageTypes.UserMessage:

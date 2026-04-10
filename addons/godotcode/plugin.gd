@@ -109,12 +109,14 @@ func _register_tools() -> void:
 	var scene_tree := GCSceneTreeTool.new()
 	var screenshot := GCScreenshotTool.new()
 	var plugin_writer := GCPluginWriterTool.new()
+	var image_gen := GCImageGenTool.new()
 
 	_tool_registry.register(error_monitor)
 	_tool_registry.register(node_property)
 	_tool_registry.register(scene_tree)
 	_tool_registry.register(screenshot)
 	_tool_registry.register(plugin_writer)
+	_tool_registry.register(image_gen)
 
 
 func _register_commands() -> void:

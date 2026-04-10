@@ -34,6 +34,7 @@ func _ready() -> void:
 		_query_engine.query_error.connect(_on_query_error)
 		_query_engine.permission_requested.connect(_on_permission_requested)
 		_query_engine.status_update.connect(_on_status_update)
+		_query_engine.tool_vision_result.connect(_on_tool_vision_result)
 
 	_load_conversation()
 
@@ -147,6 +148,15 @@ func _on_permission_requested(tool_name: String, tool_input: Dictionary, callbac
 	dialog.popup_centered(Vector2i(500, 300))
 
 
+func _on_tool_vision_result(tool_name: String, base64_data: String, media_type: String, description: String) -> void:
+	var image_display := preload("res://addons/godotcode/ui/image_display.tscn").instantiate()
+	image_display.setup(base64_data, media_type, tool_name)
+	_message_list.add_child(image_display)
+	await get_tree().process_frame
+	if is_instance_valid(_message_container):
+		_message_container.ensure_control_visible(image_display)
+
+
 func _add_message_bubble(role: String, text: String) -> void:
 	var label := _create_message_label(role)
 	label.text = text
@@ -191,7 +201,16 @@ func _on_settings() -> void:
 func _load_conversation() -> void:
 	if _conversation_history and _conversation_history.load_from_file():
 		for msg in _conversation_history.get_display_messages():
-			_add_message_bubble(msg.role, msg.content)
+			if msg.get("role") == "vision":
+				var image_display := preload("res://addons/godotcode/ui/image_display.tscn").instantiate()
+				image_display.setup(
+					msg.get("base64_data", ""),
+					msg.get("media_type", "image/png"),
+					msg.get("description", "Image")
+				)
+				_message_list.add_child(image_display)
+			else:
+				_add_message_bubble(msg.role, msg.content)
 
 
 func _save_conversation() -> void:
