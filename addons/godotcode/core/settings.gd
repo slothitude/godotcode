@@ -16,6 +16,9 @@ const THEME := "theme"
 const CONVERSATION_DIR := "conversation_dir"
 const WEB_EYES_URL := "web_eyes_url"
 const SEARXNG_URL := "searxng_url"
+const IMAGE_GEN_PROVIDER := "image_gen_provider"
+const IMAGE_GEN_MODEL := "image_gen_model"
+const OLLAMA_URL := "ollama_url"
 
 # Provider options
 const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
@@ -34,6 +37,9 @@ const DEFAULT_PERMISSION_MODE := "default"
 const DEFAULT_THEME := "dark"
 const DEFAULT_WEB_EYES_URL := "http://localhost:3000"
 const DEFAULT_SEARXNG_URL := "http://localhost:8889"
+const DEFAULT_IMAGE_GEN_PROVIDER := "ollama"
+const DEFAULT_IMAGE_GEN_MODEL := "llava"
+const DEFAULT_OLLAMA_URL := "http://localhost:11434"
 
 var _editor_settings: EditorSettings
 
@@ -70,6 +76,12 @@ func _ensure_defaults() -> void:
 		set_setting(WEB_EYES_URL, DEFAULT_WEB_EYES_URL)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + SEARXNG_URL):
 		set_setting(SEARXNG_URL, DEFAULT_SEARXNG_URL)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + IMAGE_GEN_PROVIDER):
+		set_setting(IMAGE_GEN_PROVIDER, DEFAULT_IMAGE_GEN_PROVIDER)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + IMAGE_GEN_MODEL):
+		set_setting(IMAGE_GEN_MODEL, DEFAULT_IMAGE_GEN_MODEL)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + OLLAMA_URL):
+		set_setting(OLLAMA_URL, DEFAULT_OLLAMA_URL)
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:
@@ -138,6 +150,21 @@ func get_web_eyes_url() -> String:
 
 func get_searxng_url() -> String:
 	var url := str(get_setting(SEARXNG_URL, DEFAULT_SEARXNG_URL))
+	if url.right(1) == "/":
+		url = url.left(url.length() - 1)
+	return url
+
+
+func get_image_gen_provider() -> String:
+	return str(get_setting(IMAGE_GEN_PROVIDER, DEFAULT_IMAGE_GEN_PROVIDER))
+
+
+func get_image_gen_model() -> String:
+	return str(get_setting(IMAGE_GEN_MODEL, DEFAULT_IMAGE_GEN_MODEL))
+
+
+func get_ollama_url() -> String:
+	var url := str(get_setting(OLLAMA_URL, DEFAULT_OLLAMA_URL))
 	if url.right(1) == "/":
 		url = url.left(url.length() - 1)
 	return url
