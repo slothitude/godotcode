@@ -127,11 +127,13 @@ func _on_stream_complete(usage: Dictionary, stop_reason: String) -> void:
 	else:
 		state = State.COMPLETE
 		query_complete.emit({"usage": usage, "stop_reason": stop_reason})
+		state = State.IDLE
 
 
 func _on_stream_error(error: Dictionary) -> void:
 	state = State.ERROR
 	query_error.emit(error)
+	state = State.IDLE
 
 
 func _execute_tool_calls() -> void:
