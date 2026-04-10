@@ -6,7 +6,7 @@ extends GCBaseTool
 func _init() -> void:
 	super._init(
 		"ImageFetch",
-		"Fetch an image from a URL and display it in the chat. Supports PNG, JPEG, GIF, and WebP images.",
+		"Fetch an image from a URL and display it in the chat. Supports PNG, JPEG, and WebP images.",
 		{
 			"url": {
 				"type": "string",
@@ -31,30 +31,27 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	if url == "":
 		return {"success": false, "error": "url is required"}
 
-	var image_bytes: PackedByteArray = await _fetch_bytes(url)
+	var fetch_result: Dictionary = await _fetch_bytes(url)
+	var http_code: int = fetch_result.get("code", 0)
+	var image_bytes: PackedByteArray = fetch_result.get("data", PackedByteArray())
+	var content_type: String = fetch_result.get("content_type", "")
+
 	if image_bytes.is_empty():
+		if http_code > 0:
+			return {"success": false, "error": "HTTP %d returned empty response from: %s" % [http_code, url]}
 		return {"success": false, "error": "Failed to fetch image from: %s" % url}
 
-	# Determine media type from URL or header
-	var media_type := _guess_media_type(url)
+	# Reject obvious non-image responses
+	if content_type.find("text/") != -1 or content_type.find("html") != -1:
+		return {"success": false, "error": "URL returned %s (not an image). Need a direct image link." % content_type}
 
-	# Validate it's actually an image by trying to load it
-	var image := Image.new()
-	var err := OK
-	match media_type:
-		"image/jpeg":
-			err = image.load_jpg_from_buffer(image_bytes)
-		"image/webp":
-			err = image.load_webp_from_buffer(image_bytes)
-		_:
-			err = image.load_png_from_buffer(image_bytes)
-			if err != OK:
-				err = image.load_jpg_from_buffer(image_bytes)
-				if err == OK:
-					media_type = "image/jpeg"
+	# Try loading the image, trying all formats
+	var load_result := _load_image(image_bytes, content_type)
+	if load_result.get("error", "") != "":
+		return {"success": false, "error": load_result["error"]}
 
-	if err != OK:
-		return {"success": false, "error": "Downloaded data is not a valid image (error %d)" % err}
+	var image: Image = load_result["image"]
+	var media_type: String = load_result["media_type"]
 
 	var base64_str := Marshalls.raw_to_base64(image_bytes)
 	var desc := "Image from %s (%dx%d, %d bytes)" % [url, image.get_width(), image.get_height(), image_bytes.size()]
@@ -68,25 +65,32 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	}
 
 
-func _fetch_bytes(url: String) -> PackedByteArray:
+func _fetch_bytes(url: String) -> Dictionary:
 	var http := HTTPRequest.new()
 	var root: Node = (Engine.get_main_loop() as SceneTree).root
 	root.add_child(http)
 	http.timeout = 30.0
 
-	var state: Dictionary = {"data": PackedByteArray(), "done": false}
+	var state: Dictionary = {"data": PackedByteArray(), "code": 0, "content_type": "", "done": false}
 
 	var headers := PackedStringArray([
-		"User-Agent: Mozilla/5.0 (compatible; GodotCode/1.0)"
+		"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+		"Accept: image/*,*/*;q=0.8"
 	])
 	var err := http.request(url, headers, HTTPClient.METHOD_GET, "")
 	if err != OK:
 		if http.is_inside_tree():
 			http.queue_free()
-		return PackedByteArray()
+		return {}
 
-	http.request_completed.connect(func(_result, _code, _headers, body: PackedByteArray):
+	http.request_completed.connect(func(_result, code: int, response_headers: PackedStringArray, body: PackedByteArray):
+		state["code"] = code
 		state["data"] = body
+		# Extract content-type from response headers
+		for h in response_headers:
+			if h.to_lower().begins_with("content-type:"):
+				state["content_type"] = h.substr(len("content-type:")).strip_edges().to_lower()
+				break
 		state["done"] = true
 	)
 
@@ -99,15 +103,56 @@ func _fetch_bytes(url: String) -> PackedByteArray:
 	if http.is_inside_tree():
 		http.queue_free()
 
-	return state["data"]
+	return state
 
 
-func _guess_media_type(url: String) -> String:
-	var lower := url.to_lower()
-	if lower.find(".jpg") != -1 or lower.find(".jpeg") != -1:
-		return "image/jpeg"
-	if lower.find(".webp") != -1:
-		return "image/webp"
-	if lower.find(".gif") != -1:
-		return "image/png"  # Godot doesn't support GIF natively, try PNG fallback
-	return "image/png"
+func _load_image(image_bytes: PackedByteArray, content_type: String) -> Dictionary:
+	# Detect format from magic bytes (most reliable)
+	# PNG: 89 50 4E 47
+	# JPEG: FF D8 FF
+	# WebP: 52 49 46 46 ... 57 45 42 50
+	var is_png := image_bytes.size() >= 4 and image_bytes[0] == 0x89 and image_bytes[1] == 0x50
+	var is_jpg := image_bytes.size() >= 3 and image_bytes[0] == 0xFF and image_bytes[1] == 0xD8 and image_bytes[2] == 0xFF
+	var is_webp := image_bytes.size() >= 12 and \
+		image_bytes[0] == 0x52 and image_bytes[1] == 0x49 and \
+		image_bytes[2] == 0x46 and image_bytes[3] == 0x46 and \
+		image_bytes[8] == 0x57 and image_bytes[9] == 0x45 and \
+		image_bytes[10] == 0x42 and image_bytes[11] == 0x50
+
+	var image := Image.new()
+	var err := OK
+	var media_type := "image/png"
+
+	if is_png:
+		err = image.load_png_from_buffer(image_bytes)
+		media_type = "image/png"
+	elif is_jpg:
+		err = image.load_jpg_from_buffer(image_bytes)
+		media_type = "image/jpeg"
+	elif is_webp:
+		err = image.load_webp_from_buffer(image_bytes)
+		media_type = "image/webp"
+	else:
+		# Unknown magic bytes — try all formats
+		err = image.load_png_from_buffer(image_bytes)
+		if err != OK:
+			err = image.load_jpg_from_buffer(image_bytes)
+			if err == OK:
+				media_type = "image/jpeg"
+		if err != OK:
+			err = image.load_webp_from_buffer(image_bytes)
+			if err == OK:
+				media_type = "image/webp"
+
+	if err != OK:
+		var hint := ""
+		if image_bytes.size() < 4:
+			hint = " Response too small (%d bytes), likely an error page." % image_bytes.size()
+		elif image_bytes.size() > 0:
+			var preview := ""
+			for i in range(mini(image_bytes.size(), 50)):
+				preview += "%02x " % image_bytes[i]
+			hint = " First bytes: [%s]" % preview.strip_edges()
+		return {"error": "Downloaded data is not a valid image (error %d).%s" % [err, hint]}
+
+	return {"image": image, "media_type": media_type}
