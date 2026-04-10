@@ -41,7 +41,7 @@ const DEFAULT_SEARXNG_URL := "http://localhost:8889"
 const DEFAULT_IMAGE_GEN_PROVIDER := "nvidia"
 const DEFAULT_IMAGE_GEN_MODEL := "flux.1-schnell"
 const DEFAULT_OLLAMA_URL := "http://localhost:11434"
-const DEFAULT_NIM_API_KEY := "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"
+const DEFAULT_NIM_API_KEY := "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"
 
 var _editor_settings: EditorSettings
 
