@@ -217,7 +217,7 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 		"data": "Image generated via NVIDIA Flux.1-schnell",
 		"is_vision": true,
 		"vision_data": image_data,
-		"media_type": "image/png"
+		"media_type": "image/jpeg"
 	}
 
 

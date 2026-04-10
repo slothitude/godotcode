@@ -23,11 +23,27 @@ func setup(base64_data: String, media_type: String, source_name: String) -> void
 
 	var image := Image.new()
 	var err := OK
-	match media_type:
-		"image/jpeg", "image/jpg":
+
+	# Detect format from magic bytes (most reliable)
+	var is_jpg := _image_bytes.size() >= 3 and _image_bytes[0] == 0xFF and _image_bytes[1] == 0xD8 and _image_bytes[2] == 0xFF
+	var is_png := _image_bytes.size() >= 4 and _image_bytes[0] == 0x89 and _image_bytes[1] == 0x50
+	var is_webp := _image_bytes.size() >= 12 and \
+		_image_bytes[8] == 0x57 and _image_bytes[9] == 0x45 and \
+		_image_bytes[10] == 0x42 and _image_bytes[11] == 0x50
+
+	if is_jpg:
+		err = image.load_jpg_from_buffer(_image_bytes)
+	elif is_png:
+		err = image.load_png_from_buffer(_image_bytes)
+	elif is_webp:
+		err = image.load_webp_from_buffer(_image_bytes)
+	else:
+		# Fallback: try all formats
+		err = image.load_png_from_buffer(_image_bytes)
+		if err != OK:
 			err = image.load_jpg_from_buffer(_image_bytes)
-		_:
-			err = image.load_png_from_buffer(_image_bytes)
+		if err != OK:
+			err = image.load_webp_from_buffer(_image_bytes)
 
 	if err != OK:
 		_source_label.text = source_name + " (load failed: %d)" % err
