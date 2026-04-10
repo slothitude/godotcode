@@ -41,7 +41,7 @@ const DEFAULT_SEARXNG_URL := "http://localhost:8889"
 const DEFAULT_IMAGE_GEN_PROVIDER := "nvidia"
 const DEFAULT_IMAGE_GEN_MODEL := "flux.1-schnell"
 const DEFAULT_OLLAMA_URL := "http://localhost:11434"
-const DEFAULT_NIM_API_KEY := "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"
+const DEFAULT_NIM_API_KEY := "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"
 
 var _editor_settings: EditorSettings
 
@@ -83,8 +83,8 @@ func _ensure_defaults() -> void:
 	set_setting(IMAGE_GEN_MODEL, DEFAULT_IMAGE_GEN_MODEL)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + OLLAMA_URL):
 		set_setting(OLLAMA_URL, DEFAULT_OLLAMA_URL)
-	if not _editor_settings.has_setting(SETTINGS_PREFIX + NIM_API_KEY):
-		set_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY)
+	# Always force NIM API key (updated)
+	set_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY)
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:
