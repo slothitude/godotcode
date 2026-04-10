@@ -14,6 +14,9 @@ AI assistant editor plugin for Godot 4.6. Chat with an AI assistant directly ins
 - **Code search** — Glob pattern matching and regex content search (Grep)
 - **Shell execution** — Run bash commands with permission prompts
 - **Web tools** — Fetch URLs and search the web
+- **Image generation** — Generate images via NVIDIA NIM (Flux.1-schnell) and edit them (Flux.1-kontext-dev)
+- **Image display** — Inline image rendering in chat with save-to-disk support
+- **Image fetch** — Download and display images from web URLs
 - **Sub-agents** — Delegate research tasks to spawned sub-agents
 - **Task management** — Create, track, and update task lists
 - **Scheduled prompts** — Cron-like timers that fire during your session
@@ -93,6 +96,8 @@ addons/godotcode/
 │   ├── scene_tree_tool.gd      # Live scene tree inspection & manipulation
 │   ├── node_property_tool.gd   # Get/set node properties at runtime
 │   ├── screenshot_tool.gd      # Viewport capture with vision pipeline
+│   ├── image_gen_tool.gd       # AI image generation & editing (NVIDIA NIM)
+│   ├── image_fetch_tool.gd     # Fetch and display images from URLs
 │   ├── error_monitor_tool.gd   # Editor error/warning log reader
 │   └── plugin_writer_tool.gd   # Self-extending plugin installer
 ├── commands/
@@ -105,13 +110,17 @@ addons/godotcode/
 ├── ui/
 │   ├── chat_panel.tscn/.gd
 │   ├── message_display.tscn/.gd
+│   ├── image_display.tscn/.gd  # Inline image renderer with save support
 │   ├── code_block.tscn/.gd
 │   ├── settings_dialog.tscn/.gd
 │   ├── tool_approval_dialog.tscn/.gd
 │   └── theme.gd
 └── tests/
     ├── unit/                  # GDUnit tests
-    └── scenes/                # Integration test scenes
+    ├── scenes/                # Integration test scenes
+    ├── test_image_display.gd  # Vision pipeline headless tests
+    ├── test_nvidia_gen.gd     # NVIDIA image gen live test
+    └── test_image_fetch_integration.gd
 ```
 
 ## Requirements
