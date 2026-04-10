@@ -131,22 +131,21 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 
 	var input_image: String = str(input.get("image", ""))
 	var is_edit := input_image != ""
-	var model_label := "Flux.1-kontext-dev (edit)" if is_edit else "Flux.1-schnell (generate)"
 
-	# Use kontext-dev for editing, schnell for generation
 	var url: String
 	var payload: Dictionary
 	if is_edit:
+		# Flux.1-kontext-dev: image editing (requires input image)
 		url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-kontext-dev"
 		payload = {
 			"prompt": prompt,
 			"image": input_image,
-			"aspect_ratio": "match_input_image",
 			"steps": 30,
 			"cfg_scale": 3.5,
 			"seed": 0
 		}
 	else:
+		# Flux.1-schnell: fast image generation
 		url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell"
 		payload = {
 			"prompt": prompt,
@@ -238,7 +237,7 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 
 	return {
 		"success": true,
-		"data": "Image via NVIDIA %s" % model_label,
+		"data": "Image via NVIDIA Flux.1-kontext-dev (edit)" if is_edit else "Image via NVIDIA Flux.1-schnell",
 		"is_vision": true,
 		"vision_data": image_data,
 		"media_type": "image/jpeg"
