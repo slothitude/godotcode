@@ -37,8 +37,8 @@ const DEFAULT_PERMISSION_MODE := "default"
 const DEFAULT_THEME := "dark"
 const DEFAULT_WEB_EYES_URL := "http://localhost:3000"
 const DEFAULT_SEARXNG_URL := "http://localhost:8889"
-const DEFAULT_IMAGE_GEN_PROVIDER := "ollama"
-const DEFAULT_IMAGE_GEN_MODEL := "llava"
+const DEFAULT_IMAGE_GEN_PROVIDER := "nvidia"
+const DEFAULT_IMAGE_GEN_MODEL := "flux.1-schnell"
 const DEFAULT_OLLAMA_URL := "http://localhost:11434"
 
 var _editor_settings: EditorSettings

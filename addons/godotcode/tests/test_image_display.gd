@@ -145,8 +145,8 @@ func test_settings_image_gen() -> void:
 	_assert(settings_script.IMAGE_GEN_PROVIDER == "image_gen_provider", "IMAGE_GEN_PROVIDER constant correct")
 	_assert(settings_script.IMAGE_GEN_MODEL == "image_gen_model", "IMAGE_GEN_MODEL constant correct")
 	_assert(settings_script.OLLAMA_URL == "ollama_url", "OLLAMA_URL constant correct")
-	_assert(settings_script.DEFAULT_IMAGE_GEN_PROVIDER == "ollama", "Default provider is ollama")
-	_assert(settings_script.DEFAULT_IMAGE_GEN_MODEL == "llava", "Default model is llava")
+	_assert(settings_script.DEFAULT_IMAGE_GEN_PROVIDER == "nvidia", "Default provider is nvidia")
+	_assert(settings_script.DEFAULT_IMAGE_GEN_MODEL == "flux.1-schnell", "Default model is flux.1-schnell")
 	_assert(settings_script.DEFAULT_OLLAMA_URL == "http://localhost:11434", "Default Ollama URL correct")
 
 

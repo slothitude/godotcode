@@ -1,24 +1,20 @@
 class_name GCImageGenTool
 extends GCBaseTool
-## Generate images via Ollama (local) or NVIDIA NIM (Flux Kontext)
+## Generate images via NVIDIA NIM (Flux.1-schnell) or Ollama
 
 
 func _init() -> void:
 	super._init(
 		"ImageGen",
-		"Generate an image from a text prompt. Returns image data for display.",
+		"Generate an image from a text prompt using AI. Returns the generated image for display in chat.",
 		{
 			"prompt": {
 				"type": "string",
-				"description": "Description of the image to generate"
-			},
-			"size": {
-				"type": "string",
-				"description": "Image size, e.g. '512x512' (provider-dependent)"
+				"description": "Description of the image to generate (required)"
 			},
 			"provider": {
 				"type": "string",
-				"description": "Provider to use: 'ollama' or 'nvidia' (default from settings)"
+				"description": "Provider to use: 'nvidia' (default) or 'ollama'"
 			}
 		}
 	)
