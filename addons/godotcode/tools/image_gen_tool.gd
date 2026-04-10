@@ -1,16 +1,20 @@
 class_name GCImageGenTool
 extends GCBaseTool
-## Generate images via NVIDIA NIM (Flux.1-schnell) or Ollama
+## Generate or edit images via NVIDIA NIM (Flux.1-kontext-dev) or Ollama
 
 
 func _init() -> void:
 	super._init(
 		"ImageGen",
-		"Generate an image from a text prompt using AI. Returns the generated image for display in chat.",
+		"Generate or edit an image using AI. Can create images from text prompts or edit existing images. Returns the result for display in chat.",
 		{
 			"prompt": {
 				"type": "string",
-				"description": "Description of the image to generate (required)"
+				"description": "Description of the image to generate or edit instruction (required)"
+			},
+			"image": {
+				"type": "string",
+				"description": "Optional base64-encoded image to edit (for image editing mode)"
 			},
 			"provider": {
 				"type": "string",
@@ -125,14 +129,34 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 	if api_key == "":
 		return {"success": false, "error": "NVIDIA NIM requires an API key. Set it in GodotCode settings."}
 
-	var url := "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell"
-	var body := JSON.stringify({
-		"prompt": prompt,
-		"width": 1024,
-		"height": 1024,
-		"seed": 0,
-		"steps": 4
-	})
+	var input_image: String = str(input.get("image", ""))
+	var is_edit := input_image != ""
+	var model_label := "Flux.1-kontext-dev (edit)" if is_edit else "Flux.1-schnell (generate)"
+
+	# Use kontext-dev for editing, schnell for generation
+	var url: String
+	var payload: Dictionary
+	if is_edit:
+		url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-kontext-dev"
+		payload = {
+			"prompt": prompt,
+			"image": input_image,
+			"aspect_ratio": "match_input_image",
+			"steps": 30,
+			"cfg_scale": 3.5,
+			"seed": 0
+		}
+	else:
+		url = "https://ai.api.nvidia.com/v1/genai/black-forest-labs/flux.1-schnell"
+		payload = {
+			"prompt": prompt,
+			"width": 1024,
+			"height": 1024,
+			"seed": 0,
+			"steps": 4
+		}
+
+	var body := JSON.stringify(payload)
 
 	var headers := PackedStringArray([
 		"Content-Type: application/json",
@@ -214,7 +238,7 @@ func _generate_nvidia(prompt: String, input: Dictionary, context: Dictionary) ->
 
 	return {
 		"success": true,
-		"data": "Image generated via NVIDIA Flux.1-schnell",
+		"data": "Image via NVIDIA %s" % model_label,
 		"is_vision": true,
 		"vision_data": image_data,
 		"media_type": "image/jpeg"
