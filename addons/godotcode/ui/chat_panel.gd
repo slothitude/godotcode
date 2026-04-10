@@ -150,8 +150,8 @@ func _on_permission_requested(tool_name: String, tool_input: Dictionary, callbac
 
 func _on_tool_vision_result(tool_name: String, base64_data: String, media_type: String, description: String) -> void:
 	var image_display := preload("res://addons/godotcode/ui/image_display.tscn").instantiate()
-	image_display.setup(base64_data, media_type, tool_name)
 	_message_list.add_child(image_display)
+	image_display.setup(base64_data, media_type, tool_name)
 	await get_tree().process_frame
 	if is_instance_valid(_message_container):
 		_message_container.ensure_control_visible(image_display)
@@ -203,12 +203,12 @@ func _load_conversation() -> void:
 		for msg in _conversation_history.get_display_messages():
 			if msg.get("role") == "vision":
 				var image_display := preload("res://addons/godotcode/ui/image_display.tscn").instantiate()
+				_message_list.add_child(image_display)
 				image_display.setup(
 					msg.get("base64_data", ""),
 					msg.get("media_type", "image/png"),
 					msg.get("description", "Image")
 				)
-				_message_list.add_child(image_display)
 			else:
 				_add_message_bubble(msg.role, msg.content)
 
