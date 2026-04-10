@@ -110,6 +110,7 @@ func _register_tools() -> void:
 	var screenshot := GCScreenshotTool.new()
 	var plugin_writer := GCPluginWriterTool.new()
 	var image_gen := GCImageGenTool.new()
+	var image_fetch := GCImageFetchTool.new()
 
 	_tool_registry.register(error_monitor)
 	_tool_registry.register(node_property)
@@ -117,6 +118,7 @@ func _register_tools() -> void:
 	_tool_registry.register(screenshot)
 	_tool_registry.register(plugin_writer)
 	_tool_registry.register(image_gen)
+	_tool_registry.register(image_fetch)
 
 
 func _register_commands() -> void:
