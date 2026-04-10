@@ -61,34 +61,33 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 	sub_engine._tool_registry = registry
 	sub_engine._conversation_history = sub_history
 
-	# Collect the result
-	var collected_text := ""
-	var done := false
+	# Collect the result — use Dictionary for mutable state in lambdas
+	var state: Dictionary = {"text": "", "done": false}
 
 	sub_engine.stream_text_delta.connect(func(text: String):
-		collected_text += text
+		state["text"] += text
 	)
 	sub_engine.query_complete.connect(func(_result):
-		done = true
+		state["done"] = true
 	)
 	sub_engine.query_error.connect(func(error: Dictionary):
-		collected_text += "\n[Agent Error: %s]" % str(error.get("message", "unknown"))
-		done = true
+		state["text"] += "\n[Agent Error: %s]" % str(error.get("message", "unknown"))
+		state["done"] = true
 	)
 
 	sub_engine.submit_message(prompt)
 
 	# Wait for completion with timeout
 	var start := Time.get_ticks_msec()
-	while not done:
+	while not state["done"]:
 		if Time.get_ticks_msec() - start > 120000:  # 2 min timeout
-			collected_text += "\n[Agent timed out]"
+			state["text"] += "\n[Agent timed out]"
 			break
 		await Engine.get_main_loop().process_frame
 
 	sub_api.queue_free()
 
-	if collected_text == "":
-		collected_text = "[Agent completed with no output]"
+	if state["text"] == "":
+		state["text"] = "[Agent completed with no output]"
 
-	return {"success": true, "data": collected_text}
+	return {"success": true, "data": state["text"]}
