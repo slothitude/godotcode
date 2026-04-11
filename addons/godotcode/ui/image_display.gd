@@ -1,5 +1,5 @@
 @tool
-extends PanelContainer
+extends MarginContainer
 ## Displays an image from base64 data with save-to-disk support
 
 var _image_bytes: PackedByteArray
@@ -57,6 +57,8 @@ func setup(base64_data: String, media_type: String, source_name: String) -> void
 	var display_h := mini(image.get_height(), 300)
 	var display_w := int(display_h * aspect)
 	_texture_rect.custom_minimum_size = Vector2(display_w, display_h)
+	_texture_rect.size = Vector2(display_w, display_h)
+	reset_size()
 
 
 func _on_save_pressed() -> void:
