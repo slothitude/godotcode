@@ -26,6 +26,8 @@ var _pending_tool_calls: Array = []  # {name, id, input}
 var _current_assistant: GCMessageTypes.AssistantMessage
 var _iteration_count: int = 0
 var _max_iterations: int = 50
+var _last_vision_data: String = ""
+var _last_vision_media_type: String = "image/png"
 
 
 func submit_message(prompt: String) -> void:
@@ -228,6 +230,8 @@ func _execute_single_tool(tool: GCBaseTool, tool_call: Dictionary) -> void:
 
 	# Check if tool returned vision content
 	if tool.has_vision_result(result) and result.get("success", false):
+		_last_vision_data = result.get("vision_data", "")
+		_last_vision_media_type = result.get("media_type", "image/png")
 		# Build vision content blocks for the API
 		var vision_blocks: Array = [
 			{
@@ -265,6 +269,8 @@ func _execute_single_tool_async(tool: GCBaseTool, tool_call: Dictionary) -> void
 
 	# Check if tool returned vision content
 	if tool.has_vision_result(result) and result.get("success", false):
+		_last_vision_data = result.get("vision_data", "")
+		_last_vision_media_type = result.get("media_type", "image/png")
 		var vision_blocks: Array = [
 			{
 				"type": "image",
@@ -314,4 +320,6 @@ func _build_context() -> Dictionary:
 		"conversation_history": _conversation_history,
 		"tool_registry": _tool_registry,
 		"settings": _settings,
+		"last_vision_data": _last_vision_data,
+		"last_vision_media_type": _last_vision_media_type,
 	}

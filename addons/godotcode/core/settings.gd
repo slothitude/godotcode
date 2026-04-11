@@ -20,6 +20,7 @@ const IMAGE_GEN_PROVIDER := "image_gen_provider"
 const IMAGE_GEN_MODEL := "image_gen_model"
 const OLLAMA_URL := "ollama_url"
 const NIM_API_KEY := "nim_api_key"
+const COMFYUI_URL := "comfyui_url"
 
 # Provider options
 const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
@@ -42,6 +43,7 @@ const DEFAULT_IMAGE_GEN_PROVIDER := "nvidia"
 const DEFAULT_IMAGE_GEN_MODEL := "flux.1-schnell"
 const DEFAULT_OLLAMA_URL := "http://localhost:11434"
 const DEFAULT_NIM_API_KEY := "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"
+const DEFAULT_COMFYUI_URL := "http://192.168.0.18:8202"
 
 var _editor_settings: EditorSettings
 
@@ -85,6 +87,8 @@ func _ensure_defaults() -> void:
 		set_setting(OLLAMA_URL, DEFAULT_OLLAMA_URL)
 	# Always force NIM API key (updated)
 	set_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + COMFYUI_URL):
+		set_setting(COMFYUI_URL, DEFAULT_COMFYUI_URL)
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:
@@ -175,3 +179,10 @@ func get_ollama_url() -> String:
 
 func get_nim_api_key() -> String:
 	return str(get_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY))
+
+
+func get_comfyui_url() -> String:
+	var url := str(get_setting(COMFYUI_URL, DEFAULT_COMFYUI_URL))
+	if url.right(1) == "/":
+		url = url.left(url.length() - 1)
+	return url
