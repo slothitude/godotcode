@@ -132,39 +132,24 @@ func _detect_platforms() -> Dictionary:
 func _platform_config(platform: String) -> Dictionary:
 	var configs := {
 		"windows": {
-			"platform": "windows_desktop",
-			"binary": "godot_template_windows_debug.exe",
-			"release_binary": "godot_template_windows_release.exe",
+			"platform": "Windows Desktop",
 			"extension": ".exe",
-			"features": ["pc"]
 		},
 		"linux": {
-			"platform": "linuxbsd",
-			"binary": "godot_template_linuxbsd_debug.x86_64",
-			"release_binary": "godot_template_linuxbsd_release.x86_64",
+			"platform": "Linux",
 			"extension": ".x86_64",
-			"features": ["pc"]
 		},
 		"macos": {
-			"platform": "macos",
-			"binary": "godot_template_macos_debug.zip",
-			"release_binary": "godot_template_macos_release.zip",
+			"platform": "macOS",
 			"extension": ".zip",
-			"features": ["pc"]
 		},
 		"web": {
-			"platform": "web",
-			"binary": "godot_template_web_debug.zip",
-			"release_binary": "godot_template_web_release.zip",
+			"platform": "Web",
 			"extension": ".html",
-			"features": ["web"]
 		},
 		"android": {
-			"platform": "android",
-			"binary": "godot_template_android_debug.apk",
-			"release_binary": "godot_template_android_release.apk",
+			"platform": "Android",
 			"extension": ".apk",
-			"features": ["mobile"]
 		}
 	}
 	return configs.get(platform, {})
@@ -197,8 +182,15 @@ func _create_preset(input: Dictionary, project_path: String) -> Dictionary:
 	cfg.set_value(section, "runnable", true)
 	cfg.set_value(section, "dedicated_server", false)
 	cfg.set_value(section, "custom_features", "")
+	cfg.set_value(section, "export_filter", "all_resources")
+	cfg.set_value(section, "include_filter", "")
+	cfg.set_value(section, "exclude_filter", "")
 	cfg.set_value(section, "encrypt_filter", "")
-	cfg.set_value(section, "key_filter", "")
+	cfg.set_value(section, "encryption_include_filters", "")
+	cfg.set_value(section, "encryption_exclude_filters", "")
+	cfg.set_value(section, "encrypt_pck", false)
+	cfg.set_value(section, "encrypt_directory", false)
+	cfg.set_value(section, "script_export_mode", 2)
 
 	# Platform-specific options
 	var opt_section := "preset.%d.options" % idx
@@ -261,7 +253,22 @@ func _export(input: Dictionary, project_path: String) -> Dictionary:
 
 	var platform: String = input.get("platform", "")
 	var release: bool = input.get("release", true)
-	var preset_name: String = input.get("preset_name", platform.capitalize())
+	var preset_name: String = input.get("preset_name", platform)
+
+	# Resolve output path from preset's export_path in export_presets.cfg
+	var output_path: String = input.get("output_path", "")
+	if output_path == "":
+		output_path = _get_preset_export_path(preset_name, project_path)
+	if output_path == "":
+		# Fallback: derive from platform
+		var config := _platform_config(platform)
+		output_path = "build/" + preset_name.to_snake_case() + config.get("extension", "")
+
+	# Ensure output directory exists
+	var global_output := output_path
+	if not global_output.is_absolute_path():
+		global_output = project_path + "/" + output_path
+	DirAccess.make_dir_recursive_absolute(global_output.get_base_dir())
 
 	var export_flag := "--export-release" if release else "--export-debug"
 
@@ -271,10 +278,9 @@ func _export(input: Dictionary, project_path: String) -> Dictionary:
 
 	thread.start(func():
 		var o: PackedByteArray = []
-		var e: PackedByteArray = []
 		var args := PackedStringArray([
-			export_flag,
-			preset_name,
+			"--headless",
+			export_flag, preset_name, output_path,
 			"--path", project_path
 		])
 		exit_code = OS.execute(godot_path, args, o, true)
@@ -284,7 +290,7 @@ func _export(input: Dictionary, project_path: String) -> Dictionary:
 
 	var start_time := Time.get_ticks_msec()
 	while thread.is_alive():
-		if Time.get_ticks_msec() - start_time > 120000:  # 2 minute timeout for export
+		if Time.get_ticks_msec() - start_time > 120000:
 			return {"success": false, "error": "Export timed out after 120 seconds"}
 		OS.delay_msec(100)
 
@@ -294,9 +300,62 @@ func _export(input: Dictionary, project_path: String) -> Dictionary:
 	var stdout: String = thread_result.get("stdout", "")
 
 	if exit_code != 0:
+		# Try fallback with --editor --headless if plain --headless failed
+		# (Godot requires editor init to load export presets in some versions)
+		if "Invalid export preset" in stdout or "0 presets" in stdout:
+			return _export_via_editor(godot_path, export_flag, preset_name, output_path, project_path)
 		return {"success": false, "error": "Export failed (exit %d): %s" % [exit_code, stdout]}
 
-	return {"success": true, "data": "Successfully exported '%s' (%s)" % [preset_name, platform]}
+	return {"success": true, "data": "Successfully exported '%s' (%s)" % [preset_name, platform], "output": output_path}
+
+
+func _export_via_editor(godot_path: String, export_flag: String, preset_name: String, output_path: String, project_path: String) -> Dictionary:
+	## Fallback: write a temporary export script and run via --editor --headless
+	var script_path := project_path + "/.godotcode_export_temp.gd"
+	var script_content := "extends SceneTree\n\nfunc _initialize() -> void:\n"
+	script_content += "\tvar o: PackedByteArray = []\n"
+	script_content += "\tvar ec: int = OS.execute(OS.get_executable_path(), PackedStringArray([\n"
+	script_content += "\t\t\"--headless\",\n"
+	script_content += "\t\t\"%s\", \"%s\", \"%s\",\n" % [export_flag, preset_name, output_path]
+	script_content += "\t\t\"--path\", \"%s\"\n" % project_path
+	script_content += "\t]), o, false)\n"
+	script_content += "\tvar s: String = o.get_string_from_utf8() if o.size() > 0 else \"\"\n"
+	script_content += "\tprint(s)\n"
+	script_content += "\tquit(ec)\n"
+
+	var fa := FileAccess.open(script_path, FileAccess.WRITE)
+	if not fa:
+		return {"success": false, "error": "Cannot write temp export script"}
+	fa.store_string(script_content)
+	fa.close()
+
+	var exit_code: int = -1
+	var o: PackedByteArray = []
+	var args := PackedStringArray([
+		"--editor", "--headless",
+		"--script", script_path,
+		"--path", project_path
+	])
+	exit_code = OS.execute(godot_path, args, o, true)
+	var stdout_str: String = o.get_string_from_utf8() if o.size() > 0 else ""
+
+	# Cleanup temp script
+	DirAccess.remove_absolute(script_path)
+
+	if exit_code != 0:
+		return {"success": false, "error": "Export failed via editor (exit %d): %s" % [exit_code, stdout_str]}
+	return {"success": true, "data": "Successfully exported '%s'" % preset_name, "output": output_path}
+
+
+func _get_preset_export_path(preset_name: String, project_path: String) -> String:
+	var config_path: String = project_path + "/export_presets.cfg"
+	var config := ConfigFile.new()
+	if config.load(config_path) != OK:
+		return ""
+	for section in config.get_sections():
+		if config.get_value(section, "name", "") == preset_name:
+			return config.get_value(section, "export_path", "")
+	return ""
 
 
 func _export_all(input: Dictionary, project_path: String) -> Dictionary:
@@ -312,9 +371,13 @@ func _export_all(input: Dictionary, project_path: String) -> Dictionary:
 
 	var results: Array = []
 	for preset in presets:
+		var preset_name: String = preset.get("name", "")
+		var platform: String = preset.get("platform", "")
+		var output_path: String = _get_preset_export_path(preset_name, project_path)
 		var export_input := {
-			"platform": preset.platform,
-			"preset_name": preset.name,
+			"platform": platform,
+			"preset_name": preset_name,
+			"output_path": output_path,
 			"release": input.get("release", true),
 			"godot_path": godot_path,
 		}
