@@ -78,13 +78,16 @@ Tools receive a `context` Dictionary with `project_path`, `conversation_history`
 - **`GCModelRouter`** — Per-tool model/cost routing (`user://godotcode_model_routing.json`)
 - **`GCCustomCommandLoader`** — Load user commands from `res://.godotcode/commands/*.gd`
 
-### Tools (28 total)
+### Tools (40 total)
 
 **File & Search:** Read, Write, Edit, Glob, Grep, Bash, WebSearch, WebFetch
 **Agent & Planning:** Agent, EnterPlanMode, TaskManage, Schedule, Sleep
 **Editor Live:** SceneTree, NodeProperty, Screenshot, ErrorMonitor, PluginWriter
 **Image:** ImageGen, ImageFetch
 **Power-Ups:** Git, Memory, RuntimeState, VisualDiff, AssetPipeline, Shader, MCP
+**Workflow — Scaffold & UI:** ProjectScaffold, UIBuilder, Export, InputMapper
+**Workflow — Scene Power-Ups:** Animation, Collision, Audio, TestGenerator
+**Workflow — Advanced:** Level, NPCDialogue, Localization, Performance
 
 ### Slash Commands
 
@@ -99,7 +102,7 @@ Tools receive a `context` Dictionary with `project_path`, `conversation_history`
 ### Key Directories
 
 - `addons/godotcode/core/` — Core systems (query engine, API client, message types, tool registry, managers)
-- `addons/godotcode/tools/` — 28 tool implementations
+- `addons/godotcode/tools/` — 40 tool implementations
 - `addons/godotcode/commands/` — Slash commands + custom command loader
 - `addons/godotcode/ui/` — Godot scenes (.tscn) and scripts (.gd) for the dock panel
 - `addons/godotcode/tests/` — Unit (GDUnit4), integration (test scenes), live API tests, power-up test suite

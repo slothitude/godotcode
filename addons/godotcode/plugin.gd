@@ -226,6 +226,46 @@ func _register_tools() -> void:
 	mcp_tool._mcp_client = _mcp_client
 	_tool_registry.register(mcp_tool)
 
+	# Phase 4: Workflow automation tools
+	# Tier 1: Quick Wins
+	var project_scaffold := GCProjectScaffoldTool.new()
+	_tool_registry.register(project_scaffold)
+
+	var ui_builder := GCUIBuilderTool.new()
+	_tool_registry.register(ui_builder)
+
+	var export_tool := GCExportTool.new()
+	_tool_registry.register(export_tool)
+
+	var input_mapper := GCInputMapperTool.new()
+	_tool_registry.register(input_mapper)
+
+	# Tier 2: Scene Power-Ups
+	var animation_tool := GCAnimationTool.new()
+	_tool_registry.register(animation_tool)
+
+	var collision_tool := GCCollisionTool.new()
+	_tool_registry.register(collision_tool)
+
+	var audio_tool := GCAudioTool.new()
+	_tool_registry.register(audio_tool)
+
+	var test_generator := GCTestGeneratorTool.new()
+	_tool_registry.register(test_generator)
+
+	# Tier 3: Advanced Workflows
+	var level_tool := GCLevelTool.new()
+	_tool_registry.register(level_tool)
+
+	var npc_dialogue := GCNPCDialogueTool.new()
+	_tool_registry.register(npc_dialogue)
+
+	var localization := GCLocalizationTool.new()
+	_tool_registry.register(localization)
+
+	var performance := GCPerformanceTool.new()
+	_tool_registry.register(performance)
+
 
 func _register_commands() -> void:
 	var commands: Array[GCBaseCommand] = [
