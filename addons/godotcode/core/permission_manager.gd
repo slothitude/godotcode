@@ -38,6 +38,21 @@ var _rules: Dictionary = {
 	"Shader": "ask",
 	# Phase 3: MCP tool
 	"MCP": "ask",
+	# Phase 4: Workflow automation — Tier 1
+	"ProjectScaffold": "ask",
+	"UIBuilder": "ask",
+	"Export": "ask",
+	"InputMapper": "ask",
+	# Phase 4: Workflow automation — Tier 2
+	"Animation": "ask",
+	"Collision": "ask",
+	"Audio": "ask",
+	"TestGenerator": "ask",
+	# Phase 4: Workflow automation — Tier 3
+	"Level": "ask",
+	"NPCDialogue": "ask",
+	"Localization": "ask",
+	"Performance": "allow",
 }
 
 
