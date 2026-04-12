@@ -8,6 +8,7 @@ var _settings: GCSettings
 var _conversation_history: GCConversationHistory
 var _cost_tracker: GCCostTracker
 var _command_map: Dictionary = {}
+var _session_manager: GCSessionManager
 var _settings_dialog: AcceptDialog
 var _streaming_label: RichTextLabel
 var _is_streaming: bool = false
@@ -84,11 +85,21 @@ func _handle_command(text: String) -> void:
 
 
 func _build_command_context() -> Dictionary:
-	return {
+	var ctx := {
 		"conversation_history": _conversation_history,
 		"settings": _settings,
 		"query_engine": _query_engine,
 	}
+	# Pass session manager for /session command
+	if _session_manager:
+		ctx["session_manager"] = _session_manager
+	# Pass undo stack for /undo command
+	if _query_engine and _query_engine._undo_stack:
+		ctx["undo_stack"] = _query_engine._undo_stack
+	# Pass memory manager for /memory command
+	if _query_engine and _query_engine._context_manager:
+		ctx["memory_manager"] = _query_engine._context_manager._memory_manager
+	return ctx
 
 
 func _on_message_received(message: Dictionary) -> void:

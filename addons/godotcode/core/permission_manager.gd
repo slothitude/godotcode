@@ -24,6 +24,20 @@ var _rules: Dictionary = {
 	"Screenshot": "allow",
 	"ErrorMonitor": "allow",
 	"PluginWriter": "ask",
+	# Phase 1: Git tool
+	"Git": "ask",
+	# Phase 1: Memory tool
+	"Memory": "allow",
+	# Phase 2: Runtime state
+	"RuntimeState": "allow",
+	# Phase 2: Visual diff
+	"VisualDiff": "allow",
+	# Phase 2: Asset pipeline
+	"AssetPipeline": "ask",
+	# Phase 2: Shader tool
+	"Shader": "ask",
+	# Phase 3: MCP tool
+	"MCP": "ask",
 }
 
 

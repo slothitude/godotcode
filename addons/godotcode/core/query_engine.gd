@@ -22,6 +22,33 @@ var _cost_tracker: GCCostTracker
 var _context_manager: GCContextManager
 var _settings: GCSettings
 
+# Phase 1: Undo stack
+var _undo_stack: GCUndoStack
+
+# Phase 2: Visual diff
+var _visual_diff: GCVisualDiff
+
+# Phase 3: Hooks manager
+var _hooks_manager: GCHooksManager
+
+# Phase 3: Model router
+var _model_router: GCModelRouter
+
+# Phase 1: Session auto-save
+var _session_manager: GCSessionManager
+
+# Phase 1: Memory manager (passed through for tool context)
+var _memory_manager: GCMemoryManager
+
+# Phase 2: Runtime monitor (passed through for tool context)
+var _runtime_monitor: GCRuntimeMonitor
+
+# Phase 2: Asset manager (passed through for tool context)
+var _asset_manager: GCAssetManager
+
+# Phase 3: MCP client (passed through for tool context)
+var _mcp_client: GCMCPClient
+
 var _pending_tool_calls: Array = []  # {name, id, input}
 var _current_assistant: GCMessageTypes.AssistantMessage
 var _iteration_count: int = 0
@@ -35,6 +62,13 @@ func submit_message(prompt: String) -> void:
 		query_error.emit({"message": "Query engine busy (state=%d)" % state})
 		return
 
+	# Phase 3: Fire pre_query hook
+	if _hooks_manager:
+		var hook_result := _hooks_manager.fire("pre_query", {"prompt": prompt})
+		if not hook_result.get("proceed", true):
+			query_error.emit({"message": "Blocked by hook: " + str(hook_result.get("messages", []))})
+			return
+
 	# Add user message if non-empty
 	if prompt != "":
 		_conversation_history.add_user_message(prompt)
@@ -43,10 +77,16 @@ func submit_message(prompt: String) -> void:
 	var system_prompt := _build_system_prompt()
 
 	_iteration_count = 0
-	_start_stream(system_prompt)
+
+	# Phase 3: Model router overrides
+	var model_overrides := {}
+	if _model_router:
+		model_overrides = _model_router.resolve_model("", {}, _build_context())
+
+	_start_stream(system_prompt, model_overrides)
 
 
-func _start_stream(system_prompt: String) -> void:
+func _start_stream(system_prompt: String, model_overrides: Dictionary = {}) -> void:
 	state = State.STREAMING
 	_current_assistant = _conversation_history.add_assistant_message()
 	_pending_tool_calls.clear()
@@ -68,7 +108,11 @@ func _start_stream(system_prompt: String) -> void:
 	if not _api_client.stream_error.is_connected(_on_stream_error):
 		_api_client.stream_error.connect(_on_stream_error)
 
-	_api_client.send_message_streaming(messages, system_prompt, tools_array)
+	# Phase 3: Pass model overrides to API client
+	if model_overrides.is_empty():
+		_api_client.send_message_streaming(messages, system_prompt, tools_array)
+	else:
+		_api_client.send_message_streaming_with_overrides(messages, system_prompt, tools_array, model_overrides)
 
 
 func _on_stream_text(text: String) -> void:
@@ -130,11 +174,21 @@ func _on_stream_complete(usage: Dictionary, stop_reason: String) -> void:
 	else:
 		state = State.COMPLETE
 		query_complete.emit({"usage": usage, "stop_reason": stop_reason})
+
+		# Phase 3: Fire post_query hook
+		if _hooks_manager:
+			_hooks_manager.fire("post_query", {"usage": usage})
+
 		state = State.IDLE
 
 
 func _on_stream_error(error: Dictionary) -> void:
 	state = State.ERROR
+
+	# Phase 3: Fire on_error hook
+	if _hooks_manager:
+		_hooks_manager.fire("on_error", error)
+
 	query_error.emit(error)
 	state = State.IDLE
 
@@ -196,6 +250,14 @@ func _execute_tool_calls_async() -> void:
 			_conversation_history.add_tool_result(tc.id, "Unknown tool: %s" % tc.name, true)
 			continue
 
+		# Phase 3: Fire pre_tool hook
+		if _hooks_manager:
+			var hook_ctx := {"tool_name": tc.name, "file_path": str(tc.input.get("file_path", tc.input.get("path", "")))}
+			var hook_result := _hooks_manager.fire("pre_tool", hook_ctx)
+			if not hook_result.get("proceed", true):
+				_conversation_history.add_tool_result(tc.id, "Blocked by hook: " + str(hook_result.get("messages", [])), true)
+				continue
+
 		# Check permissions
 		var perm := tool.check_permissions(tc.input, _build_context())
 		var behavior: String = perm.get("behavior", "ask")
@@ -221,12 +283,32 @@ func _execute_tool_calls_async() -> void:
 
 	# Re-query with tool results
 	var system_prompt := _build_system_prompt()
-	_start_stream(system_prompt)
+
+	# Phase 3: Model router — resolve per-tool
+	var model_overrides := {}
+	if _model_router:
+		model_overrides = _model_router.resolve_model("", {}, _build_context())
+
+	_start_stream(system_prompt, model_overrides)
 
 
 func _execute_single_tool(tool: GCBaseTool, tool_call: Dictionary) -> void:
 	stream_tool_call_received.emit(tool_call.name, tool_call.input)
+
+	# Phase 1: Push to undo stack before write/edit
+	_pre_tool_undo(tool_call.name, tool_call.input)
+
+	# Phase 2: Capture before for visual diff
+	_pre_tool_visual_diff(tool_call.name, tool_call.input)
+
 	var result := tool.execute(tool_call.input, _build_context())
+
+	# Phase 2: Capture after for visual diff
+	_post_tool_visual_diff()
+
+	# Phase 3: Fire post_tool hook
+	if _hooks_manager:
+		_hooks_manager.fire("post_tool", {"tool_name": tool_call.name, "result": result})
 
 	# Check if tool returned vision content
 	if tool.has_vision_result(result) and result.get("success", false):
@@ -265,7 +347,21 @@ func _execute_single_tool(tool: GCBaseTool, tool_call: Dictionary) -> void:
 
 func _execute_single_tool_async(tool: GCBaseTool, tool_call: Dictionary) -> void:
 	stream_tool_call_received.emit(tool_call.name, tool_call.input)
+
+	# Phase 1: Push to undo stack before write/edit
+	_pre_tool_undo(tool_call.name, tool_call.input)
+
+	# Phase 2: Capture before for visual diff
+	_pre_tool_visual_diff(tool_call.name, tool_call.input)
+
 	var result = await tool.execute(tool_call.input, _build_context())
+
+	# Phase 2: Capture after for visual diff
+	_post_tool_visual_diff()
+
+	# Phase 3: Fire post_tool hook
+	if _hooks_manager:
+		_hooks_manager.fire("post_tool", {"tool_name": tool_call.name, "result": result})
 
 	# Check if tool returned vision content
 	if tool.has_vision_result(result) and result.get("success", false):
@@ -301,6 +397,35 @@ func _execute_single_tool_async(tool: GCBaseTool, tool_call: Dictionary) -> void
 		)
 
 
+## Phase 1: Undo — push file content before write/edit operations
+func _pre_tool_undo(tool_name: String, tool_input: Dictionary) -> void:
+	if not _undo_stack:
+		return
+	if tool_name in ["Write", "Edit"]:
+		var file_path: String = str(tool_input.get("file_path", ""))
+		if file_path != "":
+			if file_path.begins_with("res://"):
+				file_path = ProjectSettings.globalize_path(file_path)
+			_undo_stack.push(file_path, tool_name)
+
+
+## Phase 2: Visual diff — capture before screenshot for scene mutations
+func _pre_tool_visual_diff(tool_name: String, tool_input: Dictionary) -> void:
+	if not _visual_diff:
+		return
+	if tool_name in ["SceneTree", "NodeProperty"]:
+		var action: String = str(tool_input.get("action", ""))
+		# Only capture for write operations
+		if action in ["set", "add_child", "remove_child", "move", "reparent"]:
+			_visual_diff.capture_before(tool_name, tool_input)
+
+
+## Phase 2: Visual diff — capture after screenshot
+func _post_tool_visual_diff() -> void:
+	if _visual_diff and _visual_diff.has_before():
+		_visual_diff.capture_after()
+
+
 func _build_system_prompt() -> String:
 	var prompt := ""
 	if _context_manager:
@@ -322,4 +447,14 @@ func _build_context() -> Dictionary:
 		"settings": _settings,
 		"last_vision_data": _last_vision_data,
 		"last_vision_media_type": _last_vision_media_type,
+		# Phase 1: Memory manager
+		"memory_manager": _memory_manager,
+		# Phase 2: Runtime monitor
+		"runtime_monitor": _runtime_monitor,
+		# Phase 2: Visual diff
+		"visual_diff": _visual_diff,
+		# Phase 2: Asset manager
+		"asset_manager": _asset_manager,
+		# Phase 3: MCP client
+		"mcp_client": _mcp_client,
 	}
