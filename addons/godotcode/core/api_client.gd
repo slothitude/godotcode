@@ -21,6 +21,10 @@ var _event_data: String = ""
 
 
 func send_message_streaming(messages: Array, system_prompt: String, tools: Array) -> void:
+	send_message_streaming_with_overrides(messages, system_prompt, tools, {})
+
+
+func send_message_streaming_with_overrides(messages: Array, system_prompt: String, tools: Array, model_overrides: Dictionary) -> void:
 	if _is_streaming:
 		stream_error.emit({"message": "Already streaming"})
 		return
@@ -39,9 +43,17 @@ func send_message_streaming(messages: Array, system_prompt: String, tools: Array
 	_current_tool_inputs.clear()
 
 	var provider := _settings.get_provider()
+	if model_overrides.has("provider") and model_overrides.provider != "":
+		provider = model_overrides.provider
 	var headers := _build_headers(provider, api_key)
 	var url := _build_url(provider)
 	var body := _build_body(provider, messages, system_prompt, tools)
+
+	# Apply model overrides
+	if model_overrides.has("model") and model_overrides.model != "":
+		body["model"] = model_overrides.model
+	if model_overrides.has("max_tokens") and model_overrides.max_tokens > 0:
+		body["max_tokens"] = model_overrides.max_tokens
 
 	if not _http_request:
 		_http_request = HTTPRequest.new()

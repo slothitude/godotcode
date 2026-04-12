@@ -2,6 +2,9 @@ class_name GCContextManager
 extends RefCounted
 ## Gather project context for the system prompt
 
+var _memory_manager: GCMemoryManager
+var _runtime_monitor: GCRuntimeMonitor
+
 
 func build_system_prompt() -> String:
 	var parts: Array = []
@@ -26,14 +29,30 @@ func build_system_prompt() -> String:
 	if claude_md != "":
 		parts.append("## Project Instructions (CLAUDE.md)\n%s" % claude_md)
 
+	# Phase 1: Inject persistent memory
+	if _memory_manager:
+		var memory_section := _memory_manager.build_memory_section()
+		if memory_section != "":
+			parts.append(memory_section)
+
 	# Current scene info
 	var scene_info := _get_current_scene_info()
 	if scene_info != "":
 		parts.append("## Current Scene\n%s" % scene_info)
 
+	# Phase 2: Runtime state indicator
+	if _runtime_monitor and _runtime_monitor.is_game_running():
+		parts.append("## Runtime State\nGame is running. Use the RuntimeState tool to inspect live game state (tree, properties, screenshots).")
+
 	var prompt := "You are GodotCode, an AI assistant integrated into the Godot editor as a plugin. "
 	prompt += "You help with GDScript, Godot scenes, shaders, and general programming tasks.\n\n"
 	prompt += "You have direct access to the live editor via SceneTree, NodeProperty, Screenshot, ErrorMonitor, and PluginWriter tools. "
+	prompt += "Use the Memory tool to save important information across sessions. "
+	prompt += "Use the RuntimeState tool to inspect live game state during play mode. "
+	prompt += "Use the Shader tool to write, apply, and preview shaders with visual feedback. "
+	prompt += "Use the AssetPipeline tool to import generated images and create materials. "
+	prompt += "Use the Git tool for structured git operations. "
+	prompt += "Use VisualDiff to see before/after screenshots of scene mutations. "
 	prompt += "If you need a capability you don't have, write a GDScript EditorPlugin that provides it. "
 	prompt += "Use PluginWriter to install it. You are not limited to your current toolset — you can extend yourself.\n\n"
 

@@ -6,7 +6,7 @@ extends GCBaseTool
 func _init() -> void:
 	super._init(
 		"Screenshot",
-		"Capture a screenshot of the current editor viewport. Returns image data for visual analysis.",
+		"Capture a screenshot of the current editor viewport or game viewport during play mode. Returns image data for visual analysis.",
 		{
 			"viewport": {
 				"type": "integer",
@@ -19,6 +19,10 @@ func _init() -> void:
 			"height": {
 				"type": "integer",
 				"description": "Optional resize height (max 1080)"
+			},
+			"game_viewport": {
+				"type": "boolean",
+				"description": "Capture the game viewport instead of editor (for play mode screenshots)"
 			}
 		}
 	)
@@ -37,21 +41,38 @@ func execute(input: Dictionary, context: Dictionary) -> Dictionary:
 		return {"success": false, "error": "Screenshot only works in the editor"}
 
 	var vp_index: int = input.get("viewport", 0)
+	var capture_game: bool = input.get("game_viewport", false)
 
-	# Try 3D viewport first
-	var viewport := EditorInterface.get_editor_viewport_3d(vp_index)
 	var image: Image = null
 
-	if viewport:
-		await RenderingServer.frame_post_draw
-		image = viewport.get_texture().get_image()
+	# Try game viewport capture if requested
+	if capture_game:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree and tree.root.get_child_count() > 1:
+			for i in range(1, tree.root.get_child_count()):
+				var child: Node = tree.root.get_child(i)
+				if child is Node and not child.is_queued_for_deletion():
+					var vp := child.get_viewport()
+					if vp:
+						await RenderingServer.frame_post_draw
+						image = vp.get_texture().get_image()
+						break
+		if image == null:
+			return {"success": false, "error": "Game is not running. Start play mode first."}
+	else:
+		# Try 3D viewport first
+		var viewport := EditorInterface.get_editor_viewport_3d(vp_index)
 
-	# Fallback: try to get the 2D viewport
-	if image == null:
-		var edited_scene := EditorInterface.get_edited_scene_root()
-		if edited_scene and edited_scene.get_viewport():
+		if viewport:
 			await RenderingServer.frame_post_draw
-			image = edited_scene.get_viewport().get_texture().get_image()
+			image = viewport.get_texture().get_image()
+
+		# Fallback: try to get the 2D viewport
+		if image == null:
+			var edited_scene := EditorInterface.get_edited_scene_root()
+			if edited_scene and edited_scene.get_viewport():
+				await RenderingServer.frame_post_draw
+				image = edited_scene.get_viewport().get_texture().get_image()
 
 	if image == null:
 		return {"success": false, "error": "No viewport available for capture. Open a 3D or 2D viewport."}

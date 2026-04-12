@@ -21,6 +21,7 @@ const IMAGE_GEN_MODEL := "image_gen_model"
 const OLLAMA_URL := "ollama_url"
 const NIM_API_KEY := "nim_api_key"
 const COMFYUI_URL := "comfyui_url"
+const MCP_SERVERS := "mcp_servers"
 
 # Provider options
 const PROVIDERS := ["anthropic", "openai", "openai_compatible"]
@@ -89,6 +90,8 @@ func _ensure_defaults() -> void:
 	set_setting(NIM_API_KEY, DEFAULT_NIM_API_KEY)
 	if not _editor_settings.has_setting(SETTINGS_PREFIX + COMFYUI_URL):
 		set_setting(COMFYUI_URL, DEFAULT_COMFYUI_URL)
+	if not _editor_settings.has_setting(SETTINGS_PREFIX + MCP_SERVERS):
+		set_setting(MCP_SERVERS, [])
 
 
 func get_setting(key: String, default: Variant = null) -> Variant:

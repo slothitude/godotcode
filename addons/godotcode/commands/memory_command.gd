@@ -1,6 +1,6 @@
 class_name GCMemoryCommand
 extends GCBaseCommand
-## /memory — View persistent memory
+## /memory — View or manage persistent memory via GCMemoryManager
 
 
 func _init():
@@ -8,20 +8,36 @@ func _init():
 
 
 func execute(args: String, context: Dictionary) -> Dictionary:
-	var memory_dir := "user://claude_memory"
+	var memory_manager: GCMemoryManager = context.get("memory_manager")
 
 	if args == "clear":
-		var da := DirAccess.open(memory_dir)
-		if da:
-			da.list_dir_begin()
-			var f := da.get_next()
-			while f != "":
-				da.remove(f)
-				f = da.get_next()
-			da.list_dir_end()
+		if memory_manager:
+			memory_manager.clear_all_memories()
 		return _result("Memory cleared")
 
-	# Read and display memory files
+	# If no memory manager, fall back to direct file I/O
+	if not memory_manager:
+		return _legacy_execute(args)
+
+	# List memories
+	var memories := memory_manager.list_memories()
+	if memories.is_empty():
+		return _result("No memories stored. Use the Memory tool to save memories.")
+
+	var result: Array = []
+	for m in memories:
+		var name: String = m.get("name", "")
+		var relevant := memory_manager.get_relevant_memories(name, 1)
+		var preview := ""
+		if relevant.size() > 0:
+			preview = (relevant[0].content as String).left(300)
+		result.append("== %s ==\n%s\n" % [name, preview])
+
+	return _result("\n".join(result))
+
+
+func _legacy_execute(args: String) -> Dictionary:
+	var memory_dir := "user://claude_memory"
 	var result: Array = []
 	var da := DirAccess.open(memory_dir)
 	if not da:
@@ -43,5 +59,4 @@ func execute(args: String, context: Dictionary) -> Dictionary:
 
 	if result.is_empty():
 		return _result("No memories stored")
-
 	return _result("\n".join(result))
